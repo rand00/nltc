@@ -1,0 +1,97 @@
+
+S src/
+S src/parajobs/
+S src/tokenizer/
+S experiments/
+
+B _build/src/
+B _build/src/parajobs/
+B _build/src/tokenizer/
+B _build/experiments/
+
+PKG lwt lwt.unix lwt.log lwt.ppx
+#lwt.syntax lwt.ppx
+PKG lwt-parallel
+PKG batteries
+
+PKG text text.pcre text.pcre-syntax
+PKG sqlexpr sqlexpr.syntax
+PKG cow #cow.syntax
+PKG yojson
+
+PKG ppx_deriving.std
+
+#EXT lwt
+
+#vvvvvvvvvvvvvvv-- merlin-genconf.sh generated --vvvvvvvvvvvvv
+S /home/rand/.opam/4.02.3/build/batteries.2.4.0/_build
+B /home/rand/.opam/4.02.3/build/batteries.2.4.0/_build
+S /home/rand/.opam/4.02.3/build/batteries.2.4.0/_build/build
+B /home/rand/.opam/4.02.3/build/batteries.2.4.0/_build/build
+#S /home/rand/.opam/4.02.3/build/batteries.2.4.0/_build/src
+#B /home/rand/.opam/4.02.3/build/batteries.2.4.0/_build/src
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/examples/unix
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/examples/unix
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/ppx
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/ppx
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/core
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/core
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/logger
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/logger
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/preemptive
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/preemptive
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/react
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/react
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/simple_top
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/simple_top
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/ssl
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/ssl
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/unix
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/src/unix
+S /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/syntax
+B /home/rand/.opam/4.02.3/build/lwt.2.5.2/_build/syntax
+S /home/rand/.opam/4.02.3/build/lwt-parallel.0.1.1/_build
+B /home/rand/.opam/4.02.3/build/lwt-parallel.0.1.1/_build
+S /home/rand/.opam/4.02.3/build/lwt-parallel.0.1.1/_build/lib
+B /home/rand/.opam/4.02.3/build/lwt-parallel.0.1.1/_build/lib
+S /home/rand/.opam/4.02.3/build/lwt-parallel.0.1.1/_build/lib_test
+B /home/rand/.opam/4.02.3/build/lwt-parallel.0.1.1/_build/lib_test
+S /home/rand/.opam/4.02.3/build/ppx_deriving_yojson.2.4/_build
+B /home/rand/.opam/4.02.3/build/ppx_deriving_yojson.2.4/_build
+S /home/rand/.opam/4.02.3/lib/textwrap
+B /home/rand/.opam/4.02.3/lib/textwrap
+S /home/rand/.opam/4.02.3/lib/textwrap
+B /home/rand/.opam/4.02.3/lib/textwrap
+S /home/rand/.opam/4.02.3/lib/textwrap
+B /home/rand/.opam/4.02.3/lib/textwrap
+S /home/rand/.opam/4.02.3/lib/textwrap
+B /home/rand/.opam/4.02.3/lib/textwrap
+S /home/rand/.opam/4.02.3/build/ppx_deriving_yojson.2.4/_build/src
+B /home/rand/.opam/4.02.3/build/ppx_deriving_yojson.2.4/_build/src
+S /home/rand/.opam/4.02.3/build/sqlexpr.0.5.5/_build
+B /home/rand/.opam/4.02.3/build/sqlexpr.0.5.5/_build
+S /home/rand/.opam/4.02.3/build/text.0.8.0
+B /home/rand/.opam/4.02.3/build/text.0.8.0
+S /home/rand/.opam/4.02.3/build/text.0.8.0/_build
+B /home/rand/.opam/4.02.3/build/text.0.8.0/_build
+S /home/rand/.opam/4.02.3/build/text.0.8.0/_build/src
+B /home/rand/.opam/4.02.3/build/text.0.8.0/_build/src
+S /home/rand/.opam/4.02.3/build/text.0.8.0/_build/syntax
+B /home/rand/.opam/4.02.3/build/text.0.8.0/_build/syntax
+S /home/rand/.opam/4.02.3/build/text.0.8.0/_build/tests
+B /home/rand/.opam/4.02.3/build/text.0.8.0/_build/tests
+S /home/rand/.opam/4.02.3/build/yojson.1.3.2
+B /home/rand/.opam/4.02.3/build/yojson.1.3.2
+S /home/rand/.opam/4.02.3/lib/lwt
+B /home/rand/.opam/4.02.3/lib/lwt
+S /home/rand/.opam/4.02.3/lib/lwt-parallel
+B /home/rand/.opam/4.02.3/lib/lwt-parallel
+S /home/rand/.opam/4.02.3/lib/text
+B /home/rand/.opam/4.02.3/lib/text
+S /home/rand/.opam/4.02.3/lib/yojson
+B /home/rand/.opam/4.02.3/lib/yojson
+#^^^^^^^^^^^^^^^-- merlin-genconf.sh generated --^^^^^^^^^^^^^

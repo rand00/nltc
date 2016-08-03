@@ -1,0 +1,31 @@
+
+<src/**>: include
+<experiments/**>: include
+<test/**>: include
+
+true: bin_annot
+true: debug
+true: thread
+
+<src/compare_texts.*> or <src/tokenizer/token.*>: \
+  package(ppx_deriving.std)
+
+<src/dB.*> or <src/tokenizer/tokenizer.*> or <src/arg_aux.*> or <src/otext.*>: \
+  syntax(camlp4o)
+
+true: package(lwt,lwt.ppx,lwt-parallel)
+true: package(lwt.unix,lwt.log)
+true: package(batteries)
+
+true: package(text,text.pcre)
+<src/arg_aux.*> or <src/otext.*> or <src/tokenizer/**>: \
+  package(text.pcre-syntax)
+
+true: package(sqlexpr)
+<src/dB.*> or <src/cb.*>: package(sqlexpr.syntax)
+
+true: package(yojson)
+
+# -------------- experiments ---------------
+<experiments/lwt_*>: package(lwt-parallel)
+

@@ -1,0 +1,18 @@
+
+#require "batteries";;
+open Batteries;;
+
+#require "yojson" ;;
+#mod_use "/home/rand/pomp/ocaml/src/tokenizer/token.ml";; 
+
+#require "text";;
+#require "text.pcre" ;;
+#require "text.pcre-syntax" ;;
+#camlp4o;;
+
+#mod_use "/home/rand/pomp/ocaml/src/otext.ml";; 
+
+#mod_use "/home/rand/pomp/ocaml/src/cmp_token.ml" ;;
+(*#load "/home/rand/pomp/ocaml/_build/src/cmp_token.cmo";;*)
+
+

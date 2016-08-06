@@ -1,3 +1,23 @@
+(************************************************************************)
+(*                              NLTC                                    *)
+(* - A natural language text comparator written in OCaml                *)
+(* Copyright (C) 2016  Claes Worm                                       *)
+(*                                                                      *)
+(* This program is free software: you can redistribute it and/or modify *)
+(* it under the terms of the GNU General Public License as published by *)
+(* the Free Software Foundation, either version 3 of the License, or    *)
+(* (at your option) any later version.                                  *)
+(*                                                                      *)
+(* This program is distributed in the hope that it will be useful,      *)
+(* but WITHOUT ANY WARRANTY; without even the implied warranty of       *)
+(* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the        *)
+(* GNU General Public License for more details.                         *)
+(*                                                                      *)
+(* You should have received a copy of the GNU General Public License    *)
+(* along with this program.  If not, see <http://www.gnu.org/licenses/>.*)
+(************************************************************************)
+
+
 open Batteries
 
 (*>module Sqlexpr need to be here for syntax extension*)
@@ -14,7 +34,7 @@ type jobs =
   | Cli_pomp_dbloc of string
   | Cli_pomp_dbversion of string
   | Cli_pomp_run of string
-  | Full_anal_pomp of int
+  | DB_pomp_analysis of int
   [@@deriving ord]
 
 let jobs = ref []
@@ -80,7 +100,7 @@ let _ =
        ": Like argument [--db-local] but tests on the sections given as \
           argument to\n      '--db-pomp-sections'.\n");
 
-      ("--run-id", Arg.Int (fun id -> add_job @@ Full_anal_pomp id),
+      ("--run-id", Arg.Int (fun id -> add_job @@ DB_pomp_analysis id),
        ": Starts an analysis with the argument 'analysis-ID', \
         whos settings are listed in\n      the Pomp database.\n")
     ] 
@@ -175,7 +195,7 @@ let _ =
                  (`Pomp_v2 (db_pomp, filters))
                  arg 
           )
-        | Full_anal_pomp anal_id -> 
+        | DB_pomp_analysis anal_id -> 
         (*let db_pomp = 
             let db_pomp = Sqex.open_db !pomp_db_loc in
             at_exit (fun () -> Sqex.close_db db_pomp);

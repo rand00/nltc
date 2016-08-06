@@ -1,10 +1,7 @@
 *~
 *#
-**/.DS_Store
-.DS_Store
 **/.metadata
 **/_build
-java/structurizer/converted
 .#*
 
 *.out
@@ -20,3 +17,25 @@ java/structurizer/converted
 *.db-shm
 *.db-wal
 *.sqlite
+
+#Repo specific files 
+/ocamldoc.out.png
+/test2_all_nonanon_docID339.txt
+/test
+/test.txt
+/sql
+/txt
+/drawings
+/old
+/old_compilescripts
+/osxocaml.err
+/output
+/experiments
+/src/tokenizer/compile_pcresyntax0.sh
+/src/tokenizer/compile_pcresyntax1_alternative.sh
+/src/tokenizer/compile_tokenizer.sh
+/src/tokenizer/ocamlfindverbose
+/src/tokenizer/ocamlfindverbose2
+/src/tokenizer/ocamllib_text_META_reworked
+/src/tokenizer/pcresyntax_cmds_etc.txt
+/src/tokenizer/pcresyntax_test.ml

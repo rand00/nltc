@@ -37,15 +37,16 @@ sig
 
 end
 
-(*>goto should be extended with strict comparison func. 
-   (and other algo's like hamming++ later)*)
+(*>goto 
+  . should be extended with strict comparison func. 
+    (and other algo's like hamming++ later)
+  . we might want score-compare, as score can be a type not suited for comparison by default 
+*)
 module type EQ_TOKENWRAP =
 sig
   type t
   type score (*e.g. float or something more informative*)
-  type db_score = score
   
-  val db_score : score -> db_score (*e.g. JSON for DB representation?*)
   val equal_loose : t -> t -> bool * score
 end
 
@@ -78,7 +79,8 @@ module Local = struct
       filename : text_id; 
       text : text_content;
     }
-    type tokenwrap = Token.t
+    type token_wrap = Token.t
+    type score = float
 
   end
   (* include T *)
@@ -102,11 +104,11 @@ module Local = struct
 
   module TokenWrap_Naked :
     (TOKENWRAP
-     with type t = T.tokenwrap
+     with type t = T.token_wrap
       and type text_entry = T.text_entry) =
   struct
 
-    type t = T.tokenwrap
+    type t = T.token_wrap
     type location = unit
     type location_info = unit
 
@@ -122,16 +124,13 @@ module Local = struct
 
   (*Std. version of this module - should instead be defined from CLI-args*)
   module Eq_TokenWrap :
-    (EQ_TOKENWRAP with type t = T.tokenwrap
-                   and type score = float
-                   and type db_score = float) =
+    (EQ_TOKENWRAP with type t = T.token_wrap
+                   and type score = T.score) =
   struct
 
-    type t = T.tokenwrap
-    type score = float
-    type db_score = score
+    type t = T.token_wrap
+    type score = T.score
 
-    let db_score score = score
     let equal_loose t t' =
       let token = TokenWrap_Naked.token in
       Cmp_token.TokenCmpLoose.equal
@@ -184,7 +183,16 @@ module PompV1 = struct
       id : text_id;
       text : text_content;
     }
-    type tokenwrap = Token.t
+    type token_wrap = Token.t
+    type score = float
+
+    (*howto : how to use this type for specification, 
+      while it doesn't need to be part of interface
+      > make specific type declarations in Arg_aux module*)
+    type filter_sections = [
+      | `Sections of int list
+      | `All
+    ]
 
   end
   open T
@@ -206,9 +214,9 @@ module PompV1 = struct
   end
 
   module TokenWrap_Naked :
-    (TOKENWRAP with type t = T.tokenwrap) =
+    (TOKENWRAP with type t = T.token_wrap) =
   struct
-    type t = T.tokenwrap
+    type t = T.token_wrap
     type location = unit
     type location_info = unit
 
@@ -228,14 +236,11 @@ module PompV1 = struct
   *)
   module Eq_TokenWrap :
     (EQ_TOKENWRAP with type t := TokenWrap_Naked.t
-                   and type score := float
-                   and type db_score := float) =
+                   and type score := T.score) =
   struct
     type t = TokenWrap_Naked.t
     type score = float
-    type db_score = score
 
-    let db_score score = score
     let equal_loose t t' =
       let token = TokenWrap_Naked.token in
       Cmp_token.TokenCmpLoose.equal
@@ -407,10 +412,12 @@ module PompV2 = struct
       text_id : int;
     }
     
-    type tokenwrap = {
+    type token_wrap = {
       token : Token.t;
       location : token_location;
     }
+
+    type score = float
 
   end
   open T
@@ -434,9 +441,9 @@ module PompV2 = struct
 
   
   module TokenWrap :
-    (TOKENWRAP with type t = T.tokenwrap) =
+    (TOKENWRAP with type t = T.token_wrap) =
   struct
-    type t = tokenwrap
+    type t = token_wrap
     type location = token_location
     type location_info = token_location_scope
 
@@ -476,14 +483,11 @@ module PompV2 = struct
   *)
   module Eq_TokenWrap :
     (EQ_TOKENWRAP with type t := TokenWrap.t
-                   and type score := float
-                   and type db_score := float) =
+                   and type score := T.score) =
   struct
     type t = TokenWrap.t
-    type score = float
-    type db_score = score
+    type score = T.score
 
-    let db_score score = score
     let equal_loose t t' =
       let token = TokenWrap.token in
       Cmp_token.TokenCmpLoose.equal

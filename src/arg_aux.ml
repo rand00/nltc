@@ -20,8 +20,8 @@
 
 open Batteries
 
-(*
 module Sqlexpr = Sqlexpr_sqlite_lwt
+(*
 module Sqex = Sqlexpr (*module Sqlexpr need to be here for syntax extension*)
 *)
     
@@ -149,20 +149,45 @@ let print_analysis_results txt_matches ~show_token ~show_txtID =
 
 module Handler = struct 
 
-  (**Deprecated?: NO - go with this for simplicity's sake (avoiding functors here is good)
-     First version of general proc for handling different backends
-     > solution: 
-       . pass custom-arg-lambda to arghandler for handling more args (and fail!)
-       . pass record of std. lambda's for std. args 
-         . problem?: texts are now given as arg
-           > solution: give lambda (in record..? not correct scope) for extracting texts
-  *)
+  (*>goto - do we even need these witnesses as we can just keep types abstract 
+    by implementing all needed functions in interface.. *)
+  (*This makes us able to make fc-mod's types un-abstract for return-values*)
+  type _ db_witness =
+    | LocalDB :
+        ( DB.Local.T.text_id * 
+          DB.Local.T.token_wrap *
+          DB.Local.T.score
+        ) db_witness
+    | PompDB_V1 :
+        ( DB.PompV1.T.text_id *
+          DB.PompV1.T.token_wrap *
+          DB.PompV1.T.score
+        ) db_witness
+    | PompDB_V2 :
+        ( DB.PompV2.T.text_id *
+          DB.PompV2.T.token_wrap *
+          DB.PompV2.T.score
+        ) db_witness
+          
 
-
-  (*goo*)
-
-  let localDB ?(sections=`All) db cli_arg =
-    let texts = DB.P.V1.Sel.sections ~sections db in
+  (*goto modify func's to fit new module structure*)
+  let localDB db cli_arg =
+    let witness = LocalDB in
+    (*goto
+      > the following seems pretty reuseable; seems like it would be nice to 
+        make this function polymorphic using fc-modules 
+        > then we can later find a solution for non-matching args (extension of functionality)
+        > the only major difference between db's are e.g. the filters - 
+          just apply these (by extracting texts) before giving them to this function
+      . make modules 
+        . and use them for printing tokenwraps (with new arg-type) (not for localDB)
+        . and for printing text content 
+        . for str_of_text-id to print
+        . and for tokenizing 
+        . and for comparing score 
+      . pass these modules on to analysis 
+    *)
+    let texts = DB.Local.Sel.texts db in
     let printheader = Headers.header_of_arg Headers.pomp_db cli_arg 
     in match cli_arg with 
     | "token" ->
@@ -183,8 +208,8 @@ module Handler = struct
     | _ -> (prerr_endline printheader; exit 1)
   
   
-  let pompDB_v1 ?(sections=`All) db cli_arg =
-    let texts = DB.P.V1.Sel.sections ~sections db in
+  let pompDB_v1 db ?(sections=`All) cli_arg =
+    let texts = DB.PompV1.Sel.sections ~sections db in
     let printheader = Headers.header_of_arg Headers.pomp_db cli_arg 
     in match cli_arg with 
     | "token" ->
@@ -203,9 +228,11 @@ module Handler = struct
     | _ -> (prerr_endline printheader; exit 1)
 
 
-  let pompDB_v2 ?(filters={docs=`All; sects=`All}) db cli_arg =
+  let pompDB_v2 db
+      ?(filters=DB.PompV2.T.({docs=`All; sects=`All}))
+      cli_arg =
     (*>goto give correct filter-args*)
-    let texts = DB.P.V2.Sel.sections ~sections db in
+    let texts = DB.PompV2.Sel.sections ~sections db in
     let printheader = Headers.header_of_arg Headers.pomp_db cli_arg 
     (*>goto supply/map correct functions*)
     in match cli_arg with 
@@ -228,13 +255,14 @@ module Handler = struct
 end
 
 
-let run_db_cli db cli_arg = match db with 
-  | `Local db ->
-    Handler.localDB db cli_arg
-  | `Pomp_v1 (db, sections) ->
-    Handler.pompDB_v1 db cli_arg ~sections
-  | `Pomp_v2 (db, filters) ->
-    Handler.pompDB_v2 db cli_arg ~filters
+let run_db_cli : 'db -> 'arg -> unit Lwt.t 
+  = fun db cli_arg -> match db with 
+    | `Local db ->
+      Handler.localDB db cli_arg
+    | `Pomp_v1 (db, sections) ->
+      Handler.pompDB_v1 db cli_arg ~sections
+    | `Pomp_v2 (db, filters) ->
+      Handler.pompDB_v2 db cli_arg ~filters
 
 
 (*> goto remove when refactored 

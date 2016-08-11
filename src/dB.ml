@@ -63,8 +63,14 @@ sig
   type location_info
   
   val token : t -> Token.t
-  val location : t -> location
+  val location : t -> location 
   val wraps_of_sntcs : location_info -> Token.t list list -> t list
+  val pp_wraps :
+    ?print_location:bool ->
+    show_token:(Token.t -> string) ->
+    sntc_sep:string ->
+    t list ->
+    unit Lwt.t
 
   type text_entry
   val text_to_wraps : text_entry -> t list
@@ -85,7 +91,17 @@ module Local = struct
       filename : text_id; 
       text : text_content;
     }
-    type token_wrap = Token.t
+
+    type token_location = {
+      token_id : int;
+      sntc_id : int;
+    }
+
+    type token_wrap = {
+      token : Token.t;
+      location : token_location;
+    }
+
     type score = float
 
   end
@@ -111,24 +127,64 @@ module Local = struct
 
   end
 
-  module TokenWrap_Naked :
+  (*goto in the end we might not need anything but 
+    an abstract type signature
+      > test this without type equalities*)
+  module TokenWrap :
     (TOKENWRAP
-     with type t = T.token_wrap
-      and type text_entry = T.text_entry) =
+     with type t = T.token_wrap 
+      and type text_entry = T.text_entry
+      and type location = T.token_location) =
   struct
 
     type t = T.token_wrap
-    type location = unit
+    type location = T.token_location
     type location_info = unit
 
-    let token t = t
-    let location t = ()
-    let wraps_of_sntcs () = List.flatten 
-    
+    let token {token} = token
+    let location {location} = location
+    let wraps_of_sntcs () sentences =
+      let sentence_to_wraps sntc_id =
+        List.mapi (fun token_id token ->
+            { token;
+              location = { token_id; sntc_id }
+            }
+          )
+      in
+      sentences      
+      |> List.mapi sentence_to_wraps 
+      |> List.flatten
+
     type text_entry = T.text_entry
     let text_to_wraps {text} = 
-      Tokenizer.of_string text |> List.flatten
+      Tokenizer.of_string text
+      |> wraps_of_sntcs ()
 
+    let pp_wrap ({token; location={token_id; sntc_id}}) ~print_location ~show_token =
+      match print_location with
+      | false -> Lwt_io.printf "%s " (show_token token)
+      | true -> begin
+          Lwt_io.printf
+            " { token = \"%s\"; token_id = %d; sentence_id = %d }\n"
+            (show_token token)
+            token_id
+            sntc_id
+        end
+
+    let pp_wraps ?(print_location=false) ~show_token ~sntc_sep token_wraps =
+      let last_sntc = ref None in
+      Lwt_list.iter_s (fun tw ->
+          match !last_sntc with
+          | None -> pp_wrap ~print_location ~show_token tw
+          | Some last_sntc_id ->
+            if tw.location.sntc_id <> last_sntc_id then begin
+              last_sntc := Some tw.location.sntc_id;
+              Lwt_io.printl sntc_sep
+              >> pp_wrap ~print_location ~show_token tw
+            end else
+              pp_wrap ~print_location ~show_token tw
+        ) token_wraps
+    
   end
 
   (*Std. version of this module - should instead be defined from CLI-args*)
@@ -141,7 +197,7 @@ module Local = struct
     type score = T.score
 
     let equal_loose t t' =
-      let token = TokenWrap_Naked.token in
+      let token = TokenWrap.token in
       Cmp_token.TokenCmpLoose.equal
         (*goto> these args should be controlled from CLI*)
         ~verbose:false
@@ -195,7 +251,16 @@ module PompV1 = struct
       id : text_id;
       text : text_content;
     }
-    type token_wrap = Token.t
+    type token_location = {
+      token_id : int;
+      sntc_id : int;
+    }
+
+    type token_wrap = {
+      token : Token.t;
+      location : token_location;
+    }
+
     type score = float
 
     (*howto : how to use this type for specification, 
@@ -228,21 +293,57 @@ module PompV1 = struct
     
   end
 
-  module TokenWrap_Naked :
+  module TokenWrap :
     (TOKENWRAP with type t = T.token_wrap) =
   struct
     type t = T.token_wrap
-    type location = unit
+    type location = T.token_location
     type location_info = unit
 
-    let token t = t
-    let location t = ()
-    let wraps_of_sntcs () = List.flatten 
+    let token {token} = token
+    let location {location} = location
+    let wraps_of_sntcs () sentences =
+      let sentence_to_wraps sntc_id =
+        List.mapi (fun token_id token ->
+            { token;
+              location = { token_id; sntc_id }
+            }
+          )
+      in
+      sentences      
+      |> List.mapi sentence_to_wraps 
+      |> List.flatten
 
     type text_entry = T.text_entry
-    let text_to_wraps {text} =
-      Tokenizer.of_string text |> List.flatten
+    let text_to_wraps {text} = 
+      Tokenizer.of_string text
+      |> wraps_of_sntcs ()
 
+    let pp_wrap ({token; location={token_id; sntc_id}}) ~print_location ~show_token =
+      match print_location with
+      | false -> Lwt_io.printf "%s " (show_token token)
+      | true -> begin
+          Lwt_io.printf
+            " { token = \"%s\"; token_id = %d; sentence_id = %d }\n"
+            (show_token token)
+            token_id
+            sntc_id
+        end
+
+    let pp_wraps ?(print_location=false) ~show_token ~sntc_sep token_wraps =
+      let last_sntc = ref None in
+      Lwt_list.iter_s (fun tw ->
+          match !last_sntc with
+          | None -> pp_wrap ~print_location ~show_token tw
+          | Some last_sntc_id ->
+            if tw.location.sntc_id <> last_sntc_id then begin
+              last_sntc := Some tw.location.sntc_id;
+              Lwt_io.printl sntc_sep
+              >> pp_wrap ~print_location ~show_token tw
+            end else
+              pp_wrap ~print_location ~show_token tw
+        ) token_wraps
+    
   end
 
   (*Std. version of this module - should be defined from CLI-args
@@ -250,14 +351,14 @@ module PompV1 = struct
       from args
   *)
   module Eq_TokenWrap :
-    (EQ_TOKENWRAP with type t := TokenWrap_Naked.t
+    (EQ_TOKENWRAP with type t := TokenWrap.t
                    and type score := T.score) =
   struct
-    type t = TokenWrap_Naked.t
+    type t = TokenWrap.t
     type score = float
 
     let equal_loose t t' =
-      let token = TokenWrap_Naked.token in
+      let token = TokenWrap.token in
       Cmp_token.TokenCmpLoose.equal
         (*goto> these args should be controlled from CLI*)
         ~verbose:false
@@ -499,7 +600,40 @@ module PompV2 = struct
       text
       |> List.map part_to_wraps 
       |> List.flatten
+           
+    let pp_wrap
+        ({token;
+          location={token_id; sntc_id; part_id; sect_id; text_id}})
+        ~print_location ~show_token
+      =
+      match print_location with
+      | false -> Lwt_io.printf "%s " (show_token token)
+      | true -> begin
+          Lwt_io.printf
+            " { token = \"%s\"; token_id = %d; sentence_id = %d; \
+                part_id = %d; sect_id = %d; text_id = %d }\n"
+            (show_token token)
+            token_id
+            sntc_id
+            part_id
+            sect_id
+            text_id
+        end
 
+    let pp_wraps ?(print_location=false) ~show_token ~sntc_sep token_wraps =
+      let last_sntc = ref None in
+      Lwt_list.iter_s (fun tw ->
+          match !last_sntc with
+          | None -> pp_wrap ~print_location ~show_token tw
+          | Some last_sntc_id ->
+            if tw.location.sntc_id <> last_sntc_id then begin
+              last_sntc := Some tw.location.sntc_id;
+              Lwt_io.printl sntc_sep
+              >> pp_wrap ~print_location ~show_token tw
+            end else
+              pp_wrap ~print_location ~show_token tw
+        ) token_wraps    
+    
   end
 
   (*Std. version of this module - should be defined from CLI-args

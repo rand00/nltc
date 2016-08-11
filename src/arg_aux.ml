@@ -73,7 +73,6 @@ module Headers = struct
     with Not_found ->
       List.assoc "_unknown_" headers 
 
-  
 end
 
 let sentence_sep = 
@@ -81,7 +80,6 @@ let sentence_sep =
    NEW SENTENCE \
    ----------------\n"
 
-open Text_entry
 
 let print_doc_id ?i id =
   match id,i with 
@@ -98,8 +96,10 @@ let print_content texts =
     texts
   >> Lwt_io.printl ""
 
-(*goto goo pmatch on text-types 
-  . (make new sumtype containing diff locs + diff text catted structure)*)
+(*goto 
+  . take tokenwraps + show-id + show-content  as arg? or just put into common-handler
+  . also take show_tokenwrap as arg (this can be composed in handler for choosing text-repr)
+*)
 let tokenize_print texts header token_to_str = 
   Lwt_io.printl header >> 
   texts >>= Lwt_list.iter_s
@@ -126,8 +126,6 @@ let pomp_sections arg =
         | None -> None)
   in aux None arg
 
-let compare_score ((_, _, txm_score), _) ((_, _, txm_score'), _) =
-  Float.compare txm_score' txm_score
 
 let print_analysis_results txt_matches ~show_token ~show_txtID =
   let print_tok_match (t,t',score) =
@@ -195,7 +193,7 @@ let common_handler
     begin
       Lwt_io.printl header >> 
       texts >>= Analysis.run ~callback_mod 
-      >|= List.sort compare_score
+      >|= List.sort Analysis.compare_tmatch_on_score
       >>= print_analysis_results
         ~show_token:Token.to_tstring
         ~show_txtID:id

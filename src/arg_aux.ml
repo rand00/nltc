@@ -147,123 +147,84 @@ let print_analysis_results txt_matches ~show_token ~show_txtID =
   Lwt_list.iter_s print_txt_match txt_matches
   >> Lwt_io.printl ""  
 
-module Handler = struct 
+(*>goto - do we even need these witnesses as we can just keep types abstract 
+  by implementing all needed functions in interface.. *)
+(*This makes us able to make fc-mod's types un-abstract for return-values*)
+type _ db_witness =
+  | LocalDB :
+      ( DB.Local.T.text_id * 
+        DB.Local.T.token_wrap *
+        DB.Local.T.score
+      ) db_witness
+  | PompDB_V1 :
+      ( DB.PompV1.T.text_id *
+        DB.PompV1.T.token_wrap *
+        DB.PompV1.T.score
+      ) db_witness
+  | PompDB_V2 :
+      ( DB.PompV2.T.text_id *
+        DB.PompV2.T.token_wrap *
+        DB.PompV2.T.score
+      ) db_witness
 
-  (*>goto - do we even need these witnesses as we can just keep types abstract 
-    by implementing all needed functions in interface.. *)
-  (*This makes us able to make fc-mod's types un-abstract for return-values*)
-  type _ db_witness =
-    | LocalDB :
-        ( DB.Local.T.text_id * 
-          DB.Local.T.token_wrap *
-          DB.Local.T.score
-        ) db_witness
-    | PompDB_V1 :
-        ( DB.PompV1.T.text_id *
-          DB.PompV1.T.token_wrap *
-          DB.PompV1.T.score
-        ) db_witness
-    | PompDB_V2 :
-        ( DB.PompV2.T.text_id *
-          DB.PompV2.T.token_wrap *
-          DB.PompV2.T.score
-        ) db_witness
-          
 
-  (*goto modify func's to fit new module structure*)
-  let localDB db cli_arg =
-    let witness = LocalDB in
-    (*goto
-      > the following seems pretty reuseable; seems like it would be nice to 
-        make this function polymorphic using fc-modules 
-        > then we can later find a solution for non-matching args (extension of functionality)
-        > the only major difference between db's are e.g. the filters - 
-          just apply these (by extracting texts) before giving them to this function
-      . make modules 
-        . and use them for printing tokenwraps (with new arg-type) (not for localDB)
-        . and for printing text content 
-        . for str_of_text-id to print
-        . and for tokenizing 
-        . and for comparing score 
-      . pass these modules on to analysis 
-    *)
-    let texts = DB.Local.Sel.texts db in
-    let printheader = Headers.header_of_arg Headers.pomp_db cli_arg 
-    in match cli_arg with 
-    | "token" ->
-      tokenize_print texts printheader Token.to_string
-    | "token_types" ->
-      tokenize_print texts printheader Token.to_tstring
-    | "content" ->
-      Lwt_io.printl printheader >> print_content texts
-    | "compare" ->
-      begin
-        Lwt_io.printl printheader >> 
-        texts >>= Analysis.run ~callback_mod 
-        >|= List.sort compare_score
-        >>= print_analysis_results
-          ~show_token:Token.to_tstring
-          ~show_txtID:id
-      end
-    | _ -> (prerr_endline printheader; exit 1)
+(*goto
+    . make modules 
+      . and use them for printing tokenwraps (with new arg-type) (not for localDB)
+      . and for printing text content 
+      . for str_of_text-id to print
+      . and for tokenizing 
+      . and for comparing score 
+    . pass these modules on to analysis 
+  *)
+let common_handler
+    ~db
+    ~cli_arg
+    ~texts
+    ~header
+    ~callback_mod
+  = 
+  match cli_arg with 
+  | "token" ->
+    tokenize_print texts header Token.to_string
+  | "token_types" ->
+    tokenize_print texts header Token.to_tstring
+  | "content" ->
+    Lwt_io.printl header >> print_content texts
+  | "compare" ->
+    begin
+      Lwt_io.printl header >> 
+      texts >>= Analysis.run ~callback_mod 
+      >|= List.sort compare_score
+      >>= print_analysis_results
+        ~show_token:Token.to_tstring
+        ~show_txtID:id
+    end
+  | _ -> (prerr_endline header; exit 1)
   
-  
-  let pompDB_v1 db ?(sections=`All) cli_arg =
-    let texts = DB.PompV1.Sel.sections ~sections db in
-    let printheader = Headers.header_of_arg Headers.pomp_db cli_arg 
-    in match cli_arg with 
-    | "token" ->
-      tokenize_print texts printheader Token.to_string
-    | "token_types" ->
-      tokenize_print texts printheader Token.to_tstring
-    | "content" ->
-      Lwt_io.printl printheader >> print_content texts
-    | "compare" ->
-      begin
-        Lwt_io.printl printheader >> 
-        texts >>= Analysis.run ~callback_mod 
-        >|= List.sort compare_score
-        >>= print_analysis_results
-      end
-    | _ -> (prerr_endline printheader; exit 1)
 
-
-  let pompDB_v2 db
-      ?(filters=DB.PompV2.T.({docs=`All; sects=`All}))
-      cli_arg =
-    (*>goto give correct filter-args*)
-    let texts = DB.PompV2.Sel.sections ~sections db in
-    let printheader = Headers.header_of_arg Headers.pomp_db cli_arg 
-    (*>goto supply/map correct functions*)
-    in match cli_arg with 
-    | "token" ->
-      tokenize_print texts printheader Token.to_string
-    | "token_types" ->
-      tokenize_print texts printheader Token.to_tstring
-    | "content" ->
-      Lwt_io.printl printheader >> print_content texts
-    | "compare" ->
-      begin
-        Lwt_io.printl printheader >> 
-        texts >>= Analysis.run ~callback_mod 
-        >|= List.sort compare_score
-        >>= print_analysis_results
-      end
-    | _ -> (prerr_endline printheader; exit 1)
-
-  
-end
-
-
+(*>We grab texts first to support different function interfaces over time*)
+(*goto goo
+  . give db fc-mods as arg
+  . callback-mod can be chosen/built dynamically from cli-arg spec
+*)
 let run_db_cli : 'db -> 'arg -> unit Lwt.t 
   = fun db cli_arg -> match db with 
     | `Local db ->
-      Handler.localDB db cli_arg
+      common_handler ~db ~cli_arg
+        ~texts:(DB.Local.Sel.texts db)
+        ~header:(Headers.header_of_arg Headers.local_db cli_arg)
+        ~callback_mod:(module Cb.NoAction : Cb.IntfA)
     | `Pomp_v1 (db, sections) ->
-      Handler.pompDB_v1 db cli_arg ~sections
+      common_handler ~db ~cli_arg
+        ~texts:(DB.PompV1.Sel.texts ~sections db)
+        ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
+        ~callback_mod:(module Cb.NoAction : Cb.IntfA) 
     | `Pomp_v2 (db, filters) ->
-      Handler.pompDB_v2 db cli_arg ~filters
-
+      common_handler ~db ~cli_arg
+        ~texts:(DB.PompV2.Sel.texts ~filters db)
+        ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
+        ~callback_mod:(module Cb.NoAction : Cb.IntfA) 
 
 (*> goto remove when refactored 
 

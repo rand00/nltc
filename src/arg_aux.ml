@@ -180,6 +180,9 @@ let common_handler
     ~cli_arg
     ~texts
     ~header
+    ~textentry_mod
+    ~tokenwrap_mod
+    ~eq_tokenwrap_mod
     ~callback_mod
   = 
   match cli_arg with 
@@ -212,40 +215,29 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
       common_handler ~db ~cli_arg
         ~texts:(DB.Local.Sel.texts db)
         ~header:(Headers.header_of_arg Headers.local_db cli_arg)
-        ~callback_mod:(module Cb.NoAction : Cb.IntfA)
-    | `Pomp_v1 (db, sections) ->
+        ~textentry_mod:(module DB.Local.TextEntry : DB.TEXTENTRY)
+        ~tokenwrap_mod:(module DB.Local.TokenWrap_Naked : DB.TOKENWRAP)
+        ~eq_tokenwrap_mod:(module DB.Local.Eq_TokenWrap : DB.EQ_TOKENWRAP)
+        ~callback_mod:(module CB.NoAction : CB.S)
+
+    | `Pomp_v1 (db, sections) -> 
       common_handler ~db ~cli_arg
         ~texts:(DB.PompV1.Sel.texts ~sections db)
         ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
-        ~callback_mod:(module Cb.NoAction : Cb.IntfA) 
+        ~textentry_mod:(module DB.PompV1.TextEntry : DB.TEXTENTRY)
+        ~tokenwrap_mod:(module DB.PompV1.TokenWrap_Naked : DB.TOKENWRAP)
+        ~eq_tokenwrap_mod:(module DB.PompV1.Eq_TokenWrap : DB.EQ_TOKENWRAP)
+        ~callback_mod:(module CB.NoAction : CB.S)
+
     | `Pomp_v2 (db, filters) ->
       common_handler ~db ~cli_arg
         ~texts:(DB.PompV2.Sel.texts ~filters db)
         ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
-        ~callback_mod:(module Cb.NoAction : Cb.IntfA) 
+        ~textentry_mod:(module DB.PompV2.TextEntry : DB.TEXTENTRY)
+        ~tokenwrap_mod:(module DB.PompV2.TokenWrap : DB.TOKENWRAP)
+        ~eq_tokenwrap_mod:(module DB.PompV2.Eq_TokenWrap : DB.EQ_TOKENWRAP)
+        ~callback_mod:(module CB.NoAction : CB.S)
 
-(*> goto remove when refactored 
-
-let run_db_cli db cli_arg = match db with 
-  | `Local db -> 
-    arghandler cli_arg
-      ~callback_mod:(module Cb.NoAction : Cb.IntfA) (*(module Cb.Print : Cb.IntfA) *)
-      ~headers:Headers.local_db 
-      ~texts:(DB.L.Sel.texts db)
-  (*<goto need be a new sum-type mapping over different text structures, 
-    as we need location info now and don't want to implement everything*)       
-  | `Pomp (db, `V1, sections) -> 
-    arghandler cli_arg
-      ~callback_mod:(module Cb.NoAction : Cb.IntfA) 
-      ~headers:Headers.pomp_db 
-      ~texts:(DB.P.V1.Sel.sections ~sections db) 
-  | `Pomp (db, `V2, sections) -> 
-    arghandler cli_arg
-      ~callback_mod:(module Cb.NoAction : Cb.IntfA) 
-      ~headers:Headers.pomp_db 
-      ~texts:(DB.P.V2.Sel.sections ~sections db) 
-
-*)
 
 
 

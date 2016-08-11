@@ -75,43 +75,36 @@ module Headers = struct
 
 end
 
-let sentence_sep = 
-  "\n\n--------------- \
-   NEW SENTENCE \
-   ----------------\n"
 
+let print_text_id id_str =
+  Lwt_io.printf "\nDocument %s:\n" id_str
 
-let print_doc_id ?i id =
-  match id,i with 
-  | `Id id, _ -> Lwt_io.printf "\nDocument %d:\n" id
-  | `Name name, Some i -> Lwt_io.printf "\nDocument %d --- \
-                                         Text-name: %s\n" i name
-  | `Name name, None -> Lwt_io.printf "\nText-name: %s\n" name
-
-(*goto pmatch on text-types here as well*)
-let print_content texts =
-  Lwt_list.iteri_s 
-    (fun i {id; text} ->
-       print_doc_id ~i id >> Lwt_io.printf "  %s" text)
-    texts
+let print_content ~show_tid ~show_text texts =
+  Lwt_list.iter_s (fun text ->
+      print_text_id (show_tid id)
+      >> Lwt_io.printf "  %s" (show_text text)
+    ) texts
   >> Lwt_io.printl ""
 
 (*goto 
   . take tokenwraps + show-id + show-content  as arg? or just put into common-handler
   . also take show_tokenwrap as arg (this can be composed in handler for choosing text-repr)
 *)
-let tokenize_print texts header token_to_str = 
-  Lwt_io.printl header >> 
+let print_tokenized texts ~show_tid ~tokenize ~show_token_wrap = 
+  let sentence_sep = 
+    "\n\n"^
+    "--------------------- NEW SENTENCE ---------------------"
+    ^"\n"
+  in
   texts >>= Lwt_list.iter_s
-    (fun {id; text} -> 
-       print_doc_id id >> 
-       (text 
-        |> Otext.to_stream 
-        |> Tokenizer.of_stream 
-        |> Tokenizer.print_lwt sentence_sep token_to_str
+    (fun text -> 
+       print_text_id (show_tid id) >> 
+       (text
+        |> tokenize
+        |> Tokenizer.print_lwt sentence_sep show_token_wrap
         >> Lwt_io.printl ""))
   >> Lwt_io.printl 
-    "------------ Tokenize-print DONE --------------"
+    "------------ Printing of token-wraps DONE --------------"
 
 let pomp_sections arg = 
   let rec aux acc = function 
@@ -174,6 +167,8 @@ type _ db_witness =
       . and for tokenizing 
       . and for comparing score 
     . pass these modules on to analysis 
+    . the fc-module-args could become one module instead? 
+      < (think of how to construct dynamically, practically)
   *)
 let common_handler
     ~db
@@ -184,14 +179,21 @@ let common_handler
     ~tokenwrap_mod
     ~eq_tokenwrap_mod
     ~callback_mod
-  = 
+  =
+  let module TextEntry = (val textentry_mod : DB.TEXTENTRY) in
+  let module TokenWrap = (val tokenwrap_mod : DB.TOKENWRAP) in
+  let module Eq_TokenWrap = (val eq_tokenwrap_mod : DB.EQ_TOKENWRAP)
+  in
   match cli_arg with 
   | "token" ->
-    tokenize_print texts header Token.to_string
+    Lwt_io.printl header >> 
+    print_tokenized texts Token.to_string
   | "token_types" ->
-    tokenize_print texts header Token.to_tstring
+    Lwt_io.printl header >> 
+    print_tokenized texts Token.to_tstring
   | "content" ->
-    Lwt_io.printl header >> print_content texts
+    Lwt_io.printl header >>
+    print_content texts
   | "compare" ->
     begin
       Lwt_io.printl header >> 
@@ -204,11 +206,10 @@ let common_handler
   | _ -> (prerr_endline header; exit 1)
   
 
-(*>We grab texts first to support different function interfaces over time*)
-(*goto goo
-  . give db fc-mods as arg
+(*goto
   . callback-mod can be chosen/built dynamically from cli-arg spec
 *)
+(*>We grab texts first to support different function interfaces over time*)
 let run_db_cli : 'db -> 'arg -> unit Lwt.t 
   = fun db cli_arg -> match db with 
     | `Local db ->
@@ -216,7 +217,7 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
         ~texts:(DB.Local.Sel.texts db)
         ~header:(Headers.header_of_arg Headers.local_db cli_arg)
         ~textentry_mod:(module DB.Local.TextEntry : DB.TEXTENTRY)
-        ~tokenwrap_mod:(module DB.Local.TokenWrap_Naked : DB.TOKENWRAP)
+        ~tokenwrap_mod:(module DB.Local.TokenWrap : DB.TOKENWRAP)
         ~eq_tokenwrap_mod:(module DB.Local.Eq_TokenWrap : DB.EQ_TOKENWRAP)
         ~callback_mod:(module CB.NoAction : CB.S)
 
@@ -225,7 +226,7 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
         ~texts:(DB.PompV1.Sel.texts ~sections db)
         ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
         ~textentry_mod:(module DB.PompV1.TextEntry : DB.TEXTENTRY)
-        ~tokenwrap_mod:(module DB.PompV1.TokenWrap_Naked : DB.TOKENWRAP)
+        ~tokenwrap_mod:(module DB.PompV1.TokenWrap : DB.TOKENWRAP)
         ~eq_tokenwrap_mod:(module DB.PompV1.Eq_TokenWrap : DB.EQ_TOKENWRAP)
         ~callback_mod:(module CB.NoAction : CB.S)
 

@@ -32,8 +32,12 @@ sig
       and 'sections' *)
   type t
   type content
+
   val id : t -> id
   val text : t -> content (*goto remove? .. seems useless on polymorphic code*)
+
+  val show_id : id -> string
+  val show_text : content -> string
 
 end
 
@@ -46,8 +50,10 @@ module type EQ_TOKENWRAP =
 sig
   type t
   type score (*e.g. float or something more informative*)
-  
+
   val equal_loose : t -> t -> bool * score
+  val compare_score : score -> score -> int
+  val show_score : score -> string
 end
 
 module type TOKENWRAP = (*functor (Eq:EQ) ->*)
@@ -98,8 +104,11 @@ module Local = struct
     type content = T.text_content
     
     let id {filename} = filename
-    let text {text} = text
+    let show_id filename = filename
     
+    let text {text} = text
+    let show_text text = text
+
   end
 
   module TokenWrap_Naked :
@@ -139,6 +148,9 @@ module Local = struct
         ~settings:Cmp_token.std_cmp_settings
         (token t) (token t')
 
+    let compare_score = Float.compare
+    let show_score = Float.to_string 
+    
   end
   
   let init_tables db =
@@ -209,7 +221,10 @@ module PompV1 = struct
     type t = T.text_entry
     
     let id {id} = id
+    let show_id = Int.to_string
+
     let text {text} = text
+    let show_text text = text
     
   end
 
@@ -248,6 +263,10 @@ module PompV1 = struct
         ~verbose:false
         ~settings:Cmp_token.std_cmp_settings
         (token t) (token t')
+
+    let compare_score = Float.compare
+    let show_score = Float.to_string 
+
   end
 
   
@@ -437,6 +456,12 @@ module PompV2 = struct
     let id ({text_id}:text_entry) = text_id
     let text {text} = text
 
+    let show_id = Int.to_string
+    let show_text content =
+      content
+      |> List.map (fun {part} -> part)
+      |> String.concat " "
+    
   end
 
   
@@ -495,6 +520,10 @@ module PompV2 = struct
         ~verbose:false
         ~settings:Cmp_token.std_cmp_settings
         (token t) (token t')
+
+    let compare_score = Float.compare
+    let show_score = Float.to_string 
+
   end
 
 

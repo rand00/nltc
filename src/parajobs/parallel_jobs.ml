@@ -39,6 +39,11 @@ let chunk ~n l =
 let force_cores_default = None
 let fallback_cores_default = 1
 
+(*goto these optional args with default option type are bad style 
+  > make only optional for func to be called from users; set default only one place
+  > force_cores will be None automatically if not specified with default value...
+  > fallback_cores can be matched upon and set on 'cores'-func if specified by user
+*)
 let cores 
     ?(fallback_cores=fallback_cores_default) 
     ?(force_cores=force_cores_default) 

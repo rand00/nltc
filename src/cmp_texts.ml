@@ -74,18 +74,16 @@ let rec find f = function
           as it will depend on the type inside this (could of course get fun-args for unwrapping..)
           > useful now? NO - let's fuckin parametrize the world + all it's constituent atoms
   > see experi../loca..ml*)
-let cmp_loose ~equal_score tx1 tx2 = 
-  let tokenize tx = List.flatten @@ Tokenizer.of_string tx in
-  let tx1_toks = tokenize tx1.text
-  and tx2_toks = tokenize tx2.text
+(*goto goo call this func with correct args*)
+let cmp_loose ~equal_loose ~text_to_tokenwraps ~text_id tx1 tx2 = 
+  let tx1_toks = text_to_tokenwraps tx1 
+  and tx2_toks = text_to_tokenwraps tx2
   in
   let matches, acc_score = 
     List.fold_right 
       (fun tx1_tok ((matches, acc_score) as acc) -> 
          match 
-           find 
-             (fun tx2_tok -> equal_score tx1_tok tx2_tok) 
-             tx2_toks
+           find (equal_loose tx1_tok) tx2_toks
          with
          | Some (tx2_tok, score) -> 
            ((tx1_tok, tx2_tok, score) :: matches
@@ -93,10 +91,11 @@ let cmp_loose ~equal_score tx1 tx2 =
          | None -> acc
       ) tx1_toks ([], 0.)
   in
-  (tx1.id, tx2.id, acc_score), matches
+  (text_id tx1, text_id tx2, acc_score), matches
 
 
 (*for debugging parajobs*)
+(*
 let cmp_loose' ~equal_score (tx1_id, tx1_toks) (tx2_id, tx2_toks) = 
   let matches, acc_score = 
     List.fold_right 
@@ -113,15 +112,16 @@ let cmp_loose' ~equal_score (tx1_id, tx1_toks) (tx2_id, tx2_toks) =
       ) tx1_toks ([], 0.)
   in
   (tx1_id, tx2_id, acc_score), matches
-  
+*)  
 
 (*goto return new result type*)
+(*goto rewrite to fit new DB module structure*)
 (**Same as [cmp_twotexts_exp] but uses Set's for comparing sections*)
+(*
 let cmp_strict
-    ~(callback_mod : (module Cb.IntfA))
+    ~(callback_mod : (module CB.S))
     ~(tokenset_mod : (module Set.S with type elt = Token.token))
     tx1 tx2 = 
-  let open DB.Text_entry in
   let module TSet = (val tokenset_mod) in
   let module CB_arg = (val callback_mod) 
   in
@@ -159,3 +159,4 @@ let cmp_strict
            *)
          ) i2s 0) + acc1
     ) comparisons 0
+*)

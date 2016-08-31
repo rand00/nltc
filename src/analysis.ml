@@ -26,13 +26,14 @@ open Batteries
    runs an analysis over the list of input-text's, emitting the words
    of the sentences that match to the [callback] function. *)
 let run 
-    ?(cmp_sett=Cmp_token.std_cmp_settings) 
-    (*< goto this need be applicable to both algo's; 
-        make a sumtype and put in anl_sett?*)
-    ?(anl_sett=Settings.std_analysis) 
+    ?(anl_sett=Settings.std_analysis)
+    ~equal_loose
+    ~text_to_tokenwraps
+    ~text_id
     ~callback_mod
     (*<goto add cb for progress (in future separately for tokenization/comparison!)*)
-    texts = 
+    texts
+  = 
   let open Settings in
 
   (**The loose comparison of words, partly based on the
@@ -42,10 +43,6 @@ let run
     (*>goto this need to depend on tokenwrap type; so need to parametrize either
       TokenWrap or equal_loose for run-time configuration (TokenWrap fc-mod can be
       constructed before given to Analysis.run)*)
-    let equal_score = Cmp_token.TokenCmpLoose.equal
-        ~verbose:false
-        ~settings:cmp_sett
-    in
     let open Lwt in
     let save_free_cores = 2 in (*goto make argument to CLI*)
     let cores = max 1 (Parallel_jobs.cores () - save_free_cores) in
@@ -58,8 +55,13 @@ let run
       Parallel_jobs.chunk ~n:(cores*times_return) combinations in
     let jobs_cmp = 
       List.map (fun chunk () -> 
-          Lwt_list.map_s (fun (x,y) -> 
-              Cmp_texts.cmp_loose ~equal_score x y |> Lwt.return
+          Lwt_list.map_s (fun (x,y) ->
+              (*goto goo give all args *)
+              Cmp_texts.cmp_loose x y
+                ~equal_loose
+                ~text_to_tokenwraps
+                ~text_id
+              |> Lwt.return
             ) chunk
         ) combs_chunked 
     in
@@ -67,6 +69,7 @@ let run
     >|= List.flatten 
 
   (**This is (should be) the faster analysis compared with the 'loose' analysis*)
+(*
   and run_strict () =
     let tokenset_mod = 
       let module TS = Set.Make(struct
@@ -84,6 +87,7 @@ let run
          ~callback_mod
          ~tokenset_mod)
       texts
+*)
   in 
   match anl_sett with 
   | {mode = `Strict} -> Lwt.fail_with "Strict comparison deprecated"

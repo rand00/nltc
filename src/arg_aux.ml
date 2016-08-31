@@ -81,7 +81,7 @@ let print_text_id id_str =
 
 let print_content ~show_tid ~show_text texts =
   Lwt_list.iter_s (fun text ->
-      print_text_id (show_tid id)
+      print_text_id (show_tid text)
       >> Lwt_io.printf "  %s" (show_text text)
     ) texts
   >> Lwt_io.printl ""
@@ -90,11 +90,12 @@ let print_content ~show_tid ~show_text texts =
   . take tokenwraps + show-id + show-content  as arg? or just put into common-handler
   . also take show_tokenwrap as arg (this can be composed in handler for choosing text-repr)
 *)
+let sentence_sep = 
+  "\n\n"^
+  "--------------------- NEW SENTENCE ---------------------"
+  ^"\n"
+(*
 let print_tokenized texts ~show_tid ~tokenize ~show_token_wrap = 
-  let sentence_sep = 
-    "\n\n"^
-    "--------------------- NEW SENTENCE ---------------------"
-    ^"\n"
   in
   texts >>= Lwt_list.iter_s
     (fun text -> 
@@ -105,6 +106,7 @@ let print_tokenized texts ~show_tid ~tokenize ~show_token_wrap =
         >> Lwt_io.printl ""))
   >> Lwt_io.printl 
     "------------ Printing of token-wraps DONE --------------"
+*)
 
 let pomp_sections arg = 
   let rec aux acc = function 
@@ -169,9 +171,25 @@ type _ db_witness =
     . pass these modules on to analysis 
     . the fc-module-args could become one module instead? 
       < (think of how to construct dynamically, practically)
-  *)
-let common_handler
-    ~db
+*)
+(*goto try removing type signature later*)
+(*goto move the signature into mli instead, if possible?*)
+let common_handler :
+  type text_entry token_wrap . 
+  cli_arg:'a ->
+  texts:text_entry list Lwt.t ->
+  header:'a ->
+  textentry_mod:(module DB.TEXTENTRY
+                  with type t = text_entry) ->
+  tokenwrap_mod:(module DB.TOKENWRAP
+                  with type t = token_wrap
+                   and type text_entry = text_entry) ->
+  eq_tokenwrap_mod:(module DB.EQ_TOKENWRAP
+                     with type t = token_wrap
+                      and type score = float) -> 
+  callback_mod:'a ->
+  unit Lwt.t
+  = fun 
     ~cli_arg
     ~texts
     ~header
@@ -179,31 +197,64 @@ let common_handler
     ~tokenwrap_mod
     ~eq_tokenwrap_mod
     ~callback_mod
-  =
-  let module TextEntry = (val textentry_mod : DB.TEXTENTRY) in
-  let module TokenWrap = (val tokenwrap_mod : DB.TOKENWRAP) in
-  let module Eq_TokenWrap = (val eq_tokenwrap_mod : DB.EQ_TOKENWRAP)
-  in
-  match cli_arg with 
-  | "token" ->
-    Lwt_io.printl header >> 
-    print_tokenized texts Token.to_string
-  | "token_types" ->
-    Lwt_io.printl header >> 
-    print_tokenized texts Token.to_tstring
-  | "content" ->
-    Lwt_io.printl header >>
-    print_content texts
-  | "compare" ->
-    begin
-      Lwt_io.printl header >> 
-      texts >>= Analysis.run ~callback_mod 
-      >|= List.sort Analysis.compare_tmatch_on_score
-      >>= print_analysis_results
-        ~show_token:Token.to_tstring
-        ~show_txtID:id
-    end
-  | _ -> (prerr_endline header; exit 1)
+    -> 
+      let module TextEntry = (val textentry_mod) in
+      let module TokenWrap = (val tokenwrap_mod) in
+      let module Eq_TokenWrap = (val eq_tokenwrap_mod)
+      in
+      match cli_arg with 
+
+      | "token" ->
+        Lwt_io.printl header >>
+        (texts >>=
+         Lwt_list.iter_s
+           (fun text ->
+              Lwt_io.printl (text |> TextEntry.(show_id%id)) >>
+              (TokenWrap.text_to_wraps text
+               |> TokenWrap.pp_wraps
+                 ~print_location:true (*goto make depend on cli-arg (++following)*)
+                 ~show_token:Token.to_string
+                 ~sntc_sep:sentence_sep)
+           )
+        )
+
+      | "token_types" ->
+        Lwt_io.printl header >> 
+        (texts >>=
+         Lwt_list.iter_s
+           (fun text ->
+              Lwt_io.printl (text |> TextEntry.(show_id%id)) >>              
+              (TokenWrap.text_to_wraps text
+               |> TokenWrap.pp_wraps
+                 ~print_location:true
+                 ~show_token:Token.to_tstring
+                 ~sntc_sep:sentence_sep)
+           )
+        )
+
+      | "content" ->
+        Lwt_io.printl header >>
+        texts >>=
+        print_content 
+          ~show_tid:TextEntry.(show_id%id)
+          ~show_text:TextEntry.(show_text%text)
+
+      | "compare" ->
+        Lwt_io.printl header >>
+        (texts 
+         >>= Analysis.run
+           ~text_to_tokenwraps:TokenWrap.text_to_wraps
+           ~text_id:TextEntry.id
+           ~equal_loose:Eq_TokenWrap.equal_loose
+           ~callback_mod 
+         >|= List.sort Analysis.compare_tmatch_on_score
+         >>= print_analysis_results
+           ~show_token:(Token.to_tstring%TokenWrap.token)
+           ~show_txtID:TextEntry.show_id
+        )
+
+
+      | _ -> (prerr_endline header; exit 1)
   
 
 (*goto
@@ -213,7 +264,7 @@ let common_handler
 let run_db_cli : 'db -> 'arg -> unit Lwt.t 
   = fun db cli_arg -> match db with 
     | `Local db ->
-      common_handler ~db ~cli_arg
+      common_handler ~cli_arg
         ~texts:(DB.Local.Sel.texts db)
         ~header:(Headers.header_of_arg Headers.local_db cli_arg)
         ~textentry_mod:(module DB.Local.TextEntry : DB.TEXTENTRY)
@@ -222,7 +273,7 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
         ~callback_mod:(module CB.NoAction : CB.S)
 
     | `Pomp_v1 (db, sections) -> 
-      common_handler ~db ~cli_arg
+      common_handler ~cli_arg
         ~texts:(DB.PompV1.Sel.texts ~sections db)
         ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
         ~textentry_mod:(module DB.PompV1.TextEntry : DB.TEXTENTRY)
@@ -231,7 +282,7 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
         ~callback_mod:(module CB.NoAction : CB.S)
 
     | `Pomp_v2 (db, filters) ->
-      common_handler ~db ~cli_arg
+      common_handler ~cli_arg
         ~texts:(DB.PompV2.Sel.texts ~filters db)
         ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
         ~textentry_mod:(module DB.PompV2.TextEntry : DB.TEXTENTRY)

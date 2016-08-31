@@ -110,9 +110,9 @@ module Local = struct
 
   module TextEntry :
     (TEXTENTRY
-     with type id := T.text_id
-      and type t := T.text_entry
-      and type content := T.text_content) =
+     with type id = T.text_id
+      and type t = T.text_entry
+      and type content = T.text_content) =
   struct
 
     type id = T.text_id

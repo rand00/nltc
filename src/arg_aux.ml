@@ -231,7 +231,6 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
       common_handler ~cli_arg
         ~texts:(DB.Local.Sel.texts db)
         ~header:(Headers.header_of_arg Headers.local_db cli_arg)
-        (*>goto goo> do I need to remove type equivalences from DB.Local.TextEntry sig? - and does this work?*)
         ~textentry_mod:(module DB.Local.TextEntry)
         ~tokenwrap_mod:(module DB.Local.TokenWrap)
         ~eq_tokenwrap_mod:(module DB.Local.Eq_TokenWrap)

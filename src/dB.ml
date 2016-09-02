@@ -105,7 +105,6 @@ module Local = struct
     type score = float
 
   end
-  (* include T *)
   open T
 
   module TextEntry :
@@ -211,27 +210,27 @@ module Local = struct
   
   let init_tables db =
     Sqex.execute db
-      sqlinit"CREATE TABLE IF NOT EXISTS documents (
-                 id INTEGER PRIMARY KEY,
-                 text TEXT,
-                 filename TEXT UNIQUE
-            );"
+      [%sqlinit "CREATE TABLE IF NOT EXISTS documents (
+                   id INTEGER PRIMARY KEY,
+                   text TEXT,
+                   filename TEXT UNIQUE
+                 );"]
 
   let del_docs db = 
-    Sqex.execute db sql"DELETE FROM documents"
+    Sqex.execute db [%sql "DELETE FROM documents" ]
 
   module Ins = struct 
 
     (** Overwrites text that comes from files of the same name *)
     let replace_filetext =
-      sqlc"INSERT OR REPLACE INTO documents(filename, text) VALUES(%s, %s)"
+      [%sqlc "INSERT OR REPLACE INTO documents(filename, text) VALUES(%s, %s)" ]
 
   end
 
   module Sel = struct 
 
     let texts db = 
-      Sqex.select db sqlc"SELECT @s{filename},@s{text} FROM documents"
+      Sqex.select db [%sqlc "SELECT @s{filename},@s{text} FROM documents" ]
       >>= Lwt_list.map_s
         (fun (filename,text) -> Lwt.return {filename; text})
 
@@ -273,7 +272,6 @@ module PompV1 = struct
 
   end
   open T
-  (* include T *)
 
   module TextEntry :
     (TEXTENTRY
@@ -377,10 +375,10 @@ module PompV1 = struct
 
     let stats_v1 ~db ~anal_id ~tokens ~tid1 ~tid2 = 
       Sqex.execute db
-        sqlc"INSERT OR REPLACE INTO 
+        [%sqlc "INSERT OR REPLACE INTO 
               stats(anal_id, doc1_id, doc2_id, timestamp, 
                     nmatch_tokens, match_tokens_json) 
-              VALUES(%d, %d, %d, %d, %d, %s)"
+              VALUES(%d, %d, %d, %d, %d, %s)" ]
         anal_id 
         tid1 tid2 
         (Int.of_float (Unix.time())) 
@@ -393,10 +391,10 @@ module PompV1 = struct
 
     let select_all_sections db = 
       Sqex.select db
-        sqlc"select @d{fk_documentID}, @s{group_concat(content,\". \")}
-             from titles
-             where anonymous = 0
-             group by fk_documentID"
+        [%sqlc "select @d{fk_documentID}, @s{group_concat(content,\". \")}
+                from titles
+                where anonymous = 0
+                group by fk_documentID" ]
       >>= Lwt_list.map_s
         (fun (id,text) -> Lwt.return {id; text})
 
@@ -404,13 +402,13 @@ module PompV1 = struct
     (*goto: extract page-id's*)
     let select_section ?(section_id=19) db = 
       Sqex.select db 
-        sqlc"SELECT @d{fk_documentID},@s{content} FROM titles 
+        [%sqlc "SELECT @d{fk_documentID},@s{content} FROM titles 
              WHERE name IN
                (
                  SELECT identifier FROM temp_titles 
                  WHERE ID = %d
                )
-             ORDER BY pagenumber DESC" 
+             ORDER BY pagenumber DESC" ] 
         section_id
       >>= Lwt_list.map_s
         (fun (id,text) -> Lwt.return {id; text})
@@ -469,7 +467,7 @@ module PompV1 = struct
 
     let stats db = 
       Sqex.execute db
-        sqlinit"CREATE TABLE IF NOT EXISTS stats (
+        [%sqlinit "CREATE TABLE IF NOT EXISTS stats (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  anal_id INTEGER NOT NULL,
                  doc1_id INTEGER NOT NULL,
@@ -477,16 +475,16 @@ module PompV1 = struct
                  timestamp INTEGER NOT NULL,
                  nmatch_tokens INTEGER NOT NULL,
                  match_tokens_json TEXT NOT NULL
-            );"
+            );" ]
 
     let protostats db = 
       Sqex.execute db
-        sqlinit"CREATE TABLE IF NOT EXISTS protostats (
+        [%sqlinit "CREATE TABLE IF NOT EXISTS protostats (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  anal_id INTEGER,
                  content TEXT,
                  timestamp INTEGER
-            );"
+            );" ]
 
   end
 
@@ -543,7 +541,6 @@ module PompV2 = struct
 
   end
   open T
-  (* include T *)
 
   
   module TextEntry :

@@ -15,7 +15,7 @@ PKG lwt-parallel
 PKG batteries
 
 PKG text text.pcre text.pcre-syntax
-PKG sqlexpr sqlexpr.syntax
+PKG sqlexpr sqlexpr.ppx
 PKG cow #cow.syntax
 PKG yojson
 

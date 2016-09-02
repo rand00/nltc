@@ -10,7 +10,7 @@ true: thread
 <src/nltc.*> or <src/tokenizer/token.*>: \
   package(ppx_deriving.std)
 
-<src/dB.*> or <src/tokenizer/tokenizer.*> or <src/arg_aux.*> or <src/otext.*>: \
+<src/tokenizer/tokenizer.*> or <src/arg_aux.*> or <src/otext.*>: \
   syntax(camlp4o)
 
 true: package(lwt,lwt.ppx,lwt-parallel)
@@ -22,7 +22,7 @@ true: package(text,text.pcre)
   package(text.pcre-syntax)
 
 true: package(sqlexpr)
-<src/dB.*> or <src/cb.*>: package(sqlexpr.syntax)
+<src/dB.*> or <src/cb.*>: package(sqlexpr.ppx)
 
 true: package(yojson)
 

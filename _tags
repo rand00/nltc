@@ -7,7 +7,7 @@ true: bin_annot
 true: debug
 true: thread
 
-<src/compare_texts.*> or <src/tokenizer/token.*>: \
+<src/nltc.*> or <src/tokenizer/token.*>: \
   package(ppx_deriving.std)
 
 <src/dB.*> or <src/tokenizer/tokenizer.*> or <src/arg_aux.*> or <src/otext.*>: \

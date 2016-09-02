@@ -294,7 +294,9 @@ module PompV1 = struct
   end
 
   module TokenWrap :
-    (TOKENWRAP with type t = T.token_wrap) =
+    (TOKENWRAP with type t = T.token_wrap
+                and type text_entry = T.text_entry
+                and type location = T.token_location) =
   struct
     type t = T.token_wrap
     type location = T.token_location
@@ -351,8 +353,8 @@ module PompV1 = struct
       from args
   *)
   module Eq_TokenWrap :
-    (EQ_TOKENWRAP with type t := TokenWrap.t
-                   and type score := T.score) =
+    (EQ_TOKENWRAP with type t = T.token_wrap
+                   and type score = T.score) =
   struct
     type t = TokenWrap.t
     type score = float
@@ -567,7 +569,9 @@ module PompV2 = struct
 
   
   module TokenWrap :
-    (TOKENWRAP with type t = T.token_wrap) =
+    (TOKENWRAP with type t = T.token_wrap
+                and type text_entry = T.text_entry
+                and type location = T.token_location) =
   struct
     type t = token_wrap
     type location = token_location
@@ -641,8 +645,8 @@ module PompV2 = struct
       from args
   *)
   module Eq_TokenWrap :
-    (EQ_TOKENWRAP with type t := TokenWrap.t
-                   and type score := T.score) =
+    (EQ_TOKENWRAP with type t = T.token_wrap
+                   and type score = T.score) =
   struct
     type t = TokenWrap.t
     type score = T.score

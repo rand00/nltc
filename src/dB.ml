@@ -449,12 +449,12 @@ module PompV1 = struct
 
 
     (*goto makes more sense to limit the textual length of cat sect's than limit count*)
-    let sections ?(limit_pr_sect=None) ~sections db = 
+    let texts ?(limit_pr_sect=None) ~sections db = 
       match sections with 
       | `All -> 
         Lwt_io.printl "Selecting all sections.." >>
         select_all_sections db
-      | `Sections section_ids ->
+      | `List section_ids ->
         print_section_ids section_ids >>
         Lwt_list.map_s (fun id -> 
             section_concat ~section_id:id db
@@ -678,7 +678,7 @@ module PompV2 = struct
       . put v1-combinators in different scope (taking selector-func as arg)?
       . compose v1-combinators here
       . test with Cli_pomp_run clijob *)
-    let sections ~sections db = assert false
+    let texts ~filters db = assert false
 
   end
 

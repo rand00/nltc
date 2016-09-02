@@ -86,27 +86,10 @@ let print_content ~show_tid ~show_text texts =
     ) texts
   >> Lwt_io.printl ""
 
-(*goto 
-  . take tokenwraps + show-id + show-content  as arg? or just put into common-handler
-  . also take show_tokenwrap as arg (this can be composed in handler for choosing text-repr)
-*)
 let sentence_sep = 
   "\n\n"^
   "--------------------- NEW SENTENCE ---------------------"
   ^"\n"
-(*
-let print_tokenized texts ~show_tid ~tokenize ~show_token_wrap = 
-  in
-  texts >>= Lwt_list.iter_s
-    (fun text -> 
-       print_text_id (show_tid id) >> 
-       (text
-        |> tokenize
-        |> Tokenizer.print_lwt sentence_sep show_token_wrap
-        >> Lwt_io.printl ""))
-  >> Lwt_io.printl 
-    "------------ Printing of token-wraps DONE --------------"
-*)
 
 let pomp_sections arg = 
   let rec aux acc = function 
@@ -140,40 +123,12 @@ let print_analysis_results txt_matches ~show_token ~show_txtID =
   Lwt_list.iter_s print_txt_match txt_matches
   >> Lwt_io.printl ""  
 
-(*>goto - do we even need these witnesses as we can just keep types abstract 
-  by implementing all needed functions in interface.. *)
-(*This makes us able to make fc-mod's types un-abstract for return-values*)
-type _ db_witness =
-  | LocalDB :
-      ( DB.Local.T.text_id * 
-        DB.Local.T.token_wrap *
-        DB.Local.T.score
-      ) db_witness
-  | PompDB_V1 :
-      ( DB.PompV1.T.text_id *
-        DB.PompV1.T.token_wrap *
-        DB.PompV1.T.score
-      ) db_witness
-  | PompDB_V2 :
-      ( DB.PompV2.T.text_id *
-        DB.PompV2.T.token_wrap *
-        DB.PompV2.T.score
-      ) db_witness
 
-
-(*goto
-    . make modules 
-      . and use them for printing tokenwraps (with new arg-type) (not for localDB)
-      . and for printing text content 
-      . for str_of_text-id to print
-      . and for tokenizing 
-      . and for comparing score 
-    . pass these modules on to analysis 
-    . the fc-module-args could become one module instead? 
-      < (think of how to construct dynamically, practically)
+(*gomaybe
+  . the fc-module-args could become one module instead? 
+    < (think of how to construct dynamically, practically)
 *)
-(*goto try removing type signature later*)
-(*goto move the signature into mli instead, if possible?*)
+(*gomaybe move the signature into mli instead, if possible?*)
 let common_handler :
   type text_entry token_wrap . 
   cli_arg:'a -> 
@@ -219,6 +174,8 @@ let common_handler :
                  ~show_token:Token.to_string
                  ~sntc_sep:sentence_sep)
            )
+         >> Lwt_io.printl 
+           "--------------- Printing of tokens DONE ----------------"
         )
 
       | "token_types" ->
@@ -233,6 +190,8 @@ let common_handler :
                  ~show_token:Token.to_tstring
                  ~sntc_sep:sentence_sep)
            )
+         >> Lwt_io.printl 
+           "----------- Printing of tokens + types DONE ------------"
         )
 
       | "content" ->
@@ -241,6 +200,8 @@ let common_handler :
         print_content 
           ~show_tid:TextEntry.(show_id%id)
           ~show_text:TextEntry.(show_text%text)
+        >> Lwt_io.printl 
+          "------------ Printing of text-content DONE --------------"
 
       | "compare" ->
         Lwt_io.printl header >>

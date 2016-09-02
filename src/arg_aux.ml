@@ -182,12 +182,12 @@ let common_handler :
   textentry_mod:(module DB.TEXTENTRY
                   with type t = text_entry) ->
   tokenwrap_mod:(module DB.TOKENWRAP
-                  with type t = token_wrap
-                   and type text_entry = text_entry) ->
+                  with type t = token_wrap 
+                   and type text_entry = text_entry) -> 
   eq_tokenwrap_mod:(module DB.EQ_TOKENWRAP
                      with type t = token_wrap
                       and type score = float) -> 
-  callback_mod:'a ->
+  callback_mod:(module CB.S) ->
   unit Lwt.t
   = fun 
     ~cli_arg
@@ -267,28 +267,29 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
       common_handler ~cli_arg
         ~texts:(DB.Local.Sel.texts db)
         ~header:(Headers.header_of_arg Headers.local_db cli_arg)
-        ~textentry_mod:(module DB.Local.TextEntry : DB.TEXTENTRY)
-        ~tokenwrap_mod:(module DB.Local.TokenWrap : DB.TOKENWRAP)
-        ~eq_tokenwrap_mod:(module DB.Local.Eq_TokenWrap : DB.EQ_TOKENWRAP)
-        ~callback_mod:(module CB.NoAction : CB.S)
+        (*>goto goo> do I need to remove type equivalences from DB.Local.TextEntry sig? - and does this work?*)
+        ~textentry_mod:(module DB.Local.TextEntry)
+        ~tokenwrap_mod:(module DB.Local.TokenWrap)
+        ~eq_tokenwrap_mod:(module DB.Local.Eq_TokenWrap)
+        ~callback_mod:(module CB.NoAction)
 
     | `Pomp_v1 (db, sections) -> 
       common_handler ~cli_arg
         ~texts:(DB.PompV1.Sel.texts ~sections db)
         ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
-        ~textentry_mod:(module DB.PompV1.TextEntry : DB.TEXTENTRY)
-        ~tokenwrap_mod:(module DB.PompV1.TokenWrap : DB.TOKENWRAP)
-        ~eq_tokenwrap_mod:(module DB.PompV1.Eq_TokenWrap : DB.EQ_TOKENWRAP)
-        ~callback_mod:(module CB.NoAction : CB.S)
+        ~textentry_mod:(module DB.PompV1.TextEntry)
+        ~tokenwrap_mod:(module DB.PompV1.TokenWrap)
+        ~eq_tokenwrap_mod:(module DB.PompV1.Eq_TokenWrap)
+        ~callback_mod:(module CB.NoAction)
 
     | `Pomp_v2 (db, filters) ->
       common_handler ~cli_arg
         ~texts:(DB.PompV2.Sel.texts ~filters db)
         ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
-        ~textentry_mod:(module DB.PompV2.TextEntry : DB.TEXTENTRY)
-        ~tokenwrap_mod:(module DB.PompV2.TokenWrap : DB.TOKENWRAP)
-        ~eq_tokenwrap_mod:(module DB.PompV2.Eq_TokenWrap : DB.EQ_TOKENWRAP)
-        ~callback_mod:(module CB.NoAction : CB.S)
+        ~textentry_mod:(module DB.PompV2.TextEntry)
+        ~tokenwrap_mod:(module DB.PompV2.TokenWrap)
+        ~eq_tokenwrap_mod:(module DB.PompV2.Eq_TokenWrap)
+        ~callback_mod:(module CB.NoAction)
 
 
 

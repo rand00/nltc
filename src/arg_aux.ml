@@ -176,17 +176,20 @@ type _ db_witness =
 (*goto move the signature into mli instead, if possible?*)
 let common_handler :
   type text_entry token_wrap . 
-  cli_arg:'a ->
+  cli_arg:'a -> 
   texts:text_entry list Lwt.t ->
   header:'a ->
-  textentry_mod:(module DB.TEXTENTRY
-                  with type t = text_entry) ->
-  tokenwrap_mod:(module DB.TOKENWRAP
-                  with type t = token_wrap 
-                   and type text_entry = text_entry) -> 
-  eq_tokenwrap_mod:(module DB.EQ_TOKENWRAP
-                     with type t = token_wrap
-                      and type score = float) -> 
+  textentry_mod:
+  (module DB.TEXTENTRY
+    with type t = text_entry) ->
+  tokenwrap_mod:
+  (module DB.TOKENWRAP
+    with type t = token_wrap 
+     and type text_entry = text_entry) -> 
+  eq_tokenwrap_mod:
+  (module DB.EQ_TOKENWRAP
+    with type t = token_wrap
+     and type score = float) -> 
   callback_mod:(module CB.S) ->
   unit Lwt.t
   = fun 

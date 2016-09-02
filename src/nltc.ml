@@ -47,7 +47,7 @@ let _ =
   let db_local =
     let db_local = Sqex.open_db "local.db" in
     at_exit (fun () -> Sqex.close_db db_local);
-    DB.L.init_tables db_local
+    DB.Local.init_tables db_local
     >> Lwt.return db_local
   in
   let program_name = 
@@ -122,14 +122,14 @@ let _ =
     |> List.map 
       (function
         | Cli_local_clean -> 
-          (fun () -> db_local >>= DB.L.del_docs)
+          (fun () -> db_local >>= DB.Local.del_docs)
         | Cli_local_insert file -> 
           (fun () -> 
              match Sys.file_exists file with 
              | true -> 
                db_local >>= fun db -> 
                Sqex.execute db
-                 DB.L.Ins.replace_filetext file (input_file file)
+                 DB.Local.Ins.replace_filetext file (input_file file)
              | false -> 
                failwith 
                  (Printf.sprintf "[%s]: %s%s%s\n" 
@@ -187,7 +187,7 @@ let _ =
              | `V2 ->
                let filters =
                  (*goto define arg for doc's*)
-                 DB.PompV2.(
+                 DB.PompV2.T.(
                    { sects = !pomp_db_sections; docs = `All }
                  )
                in

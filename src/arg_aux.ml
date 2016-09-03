@@ -108,7 +108,7 @@ let pomp_sections arg =
 let print_analysis_results txt_matches ~show_token ~show_txtID =
   let print_tok_match (t,t',score) =
     Lwt_io.printf "%30s matches %s with score %f\n"
-      (*>gomaybe this func also need match token subvariants (for loc)*)
+      (*>can be used by caller for printing loc info too*)
       (show_token t)
       (show_token t')
       score in
@@ -214,6 +214,7 @@ let common_handler :
          >|= List.sort Analysis.compare_tmatch_on_score
          >>= print_analysis_results
            ~show_token:(Token.to_tstring%TokenWrap.token)
+           (*< goto depend on printing of loc info cli-arg*)
            ~show_txtID:TextEntry.show_id
         )
 

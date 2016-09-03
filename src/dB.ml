@@ -65,6 +65,11 @@ sig
   val token : t -> Token.t
   val location : t -> location 
   val wraps_of_sntcs : location_info -> Token.t list list -> t list
+  val pp_wrap :
+    t -> 
+    print_location:bool ->
+    show_token:(Token.t -> string) ->
+    unit Lwt.t
   val pp_wraps :
     ?print_location:bool ->
     show_token:(Token.t -> string) ->
@@ -79,7 +84,6 @@ sig
 end
 
 
-(*goto : implement with a callback interface for analysis as well?*)
 (** Local db for importing text through cmdline interface*)
 module Local = struct
 
@@ -126,9 +130,6 @@ module Local = struct
 
   end
 
-  (*goto in the end we might not need anything but 
-    an abstract type signature
-      > test this without type equalities*)
   module TokenWrap :
     (TOKENWRAP
      with type t = T.token_wrap 
@@ -418,10 +419,6 @@ module PompV1 = struct
         type t = text_id
         let compare = compare
       end) 
-    (*      : Map.S with type key = text_id *)
-
-    (*goto remove?*)
-    (*open Text_entry *)
 
     let concat_texts_pr_doc l =
       List.fold_right 

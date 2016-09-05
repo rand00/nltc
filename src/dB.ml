@@ -491,11 +491,12 @@ module PompV2 = struct
 
   module T = struct
 
-    type filter = [ `All | `List of int list ]
+    type 'a filter = [ `All | `List of 'a list ]
     
     type filters = {
-      docs : filter;
-      sects : filter;
+      datasets : int filter (*id*);
+      docs : int filter (*id*);
+      sects : int filter (*id*);
     }
 
     type text_id = int
@@ -507,7 +508,10 @@ module PompV2 = struct
     }
     
     type text_content = text_part list (*rem use assoc funcs.*)
-    
+
+    (*goto save dataset id too? 
+      (text_id maps in db to dataset.. - just for printing)
+      > else we just lookup in db with some CB / other *)
     type text_entry = {
       text_id : text_id;
       parts_ids : int list;
@@ -665,21 +669,99 @@ module PompV2 = struct
 
   module Sel = struct 
 
-    (*goo*)
-    (*goto implement this, making use of V1 sections concatting etc
-      . read db structure with sqlite manager
-      . make selector
-      . put v1-combinators in different scope (taking selector-func as arg)?
-      . compose v1-combinators here
-      . test with Cli_pomp_run clijob *)
-    let texts ~filters db = assert false
+    (*We call this either once or several times, depending on filters*)
+    let sections ~datasets ~docs ~sects db = 
+      Sqex.select db 
+        [%sqlc
+          "select @d{structurizer_documents_id},
+                  @d{structurizer_titles_id},
+                  @d{template_titles_id},
+                  @s{st.content}
+           from structurizer_titles as st
+           join structurizer_documents as sd
+             on st.fk_structurizer_documents = sd.structurizer_documents_id
+           join structurizer_settings as ss
+             on sd.fk_structurizer_settings = structurizer_settings_id
+           join dataset_files as df
+             on df.dataset_files_id = ss.fk_dataset_files
+           join dataset as ds
+             on ds.dataset_id = df.fk_dataset
+           join template_titles as tt
+             on st.name = tt.identifier
+           where (%d? IS NULL OR ds.dataset_id = %d?)
+             and (%d? IS NULL OR sd.structurizer_documents_id = %d?)
+             and (%d? IS NULL OR tt.template_titles_id = %d?)
+             and anonymous = 0 
+           order by st.structurizer_titles_id"
+        ]
+        datasets datasets
+        docs docs
+        sects sects
+    (*< needed this null-check with sqlexpr as we cannot construct 
+        strings with this lib at runtime*)
+
+    module TMap = 
+      Map.Make (struct
+        type t = T.text_id
+        let compare = Int.compare
+      end)
+
+    let text_entry_of_section
+        (doc_id, tit_id, templ_tit_id, content)
+        acc_texts
+      = 
+      let part =
+        { part_id = tit_id
+        ; sect_id = templ_tit_id
+        ; part = content } in
+      let new_text : T.text_entry =
+        { text_id = doc_id
+        ; parts_ids = [tit_id]
+        ; sects_ids = [templ_tit_id]
+        ; text = [part] }
+      in
+      TMap.modify_def new_text doc_id (fun t -> 
+          { t with
+            parts_ids = tit_id::t.parts_ids
+          ; sects_ids = templ_tit_id::t.sects_ids
+          ; text = part::t.text }
+        ) acc_texts
+    
+    let text_entries_of_sections sections =
+      List.fold_right text_entry_of_section
+        sections TMap.empty
+      |> TMap.values
+      |> List.of_enum
+      |> List.map (fun t ->
+          { t with
+            parts_ids = List.sort_uniq Int.compare t.parts_ids
+          ; sects_ids = List.sort_uniq Int.compare t.sects_ids }
+        )
+    
+    let some x = Some x
+
+    (*with semantics where None = All, see 'sections'*)
+    let apply_filter filter f =
+      match filter with 
+      | `All -> f None 
+      | `List l ->
+        Lwt_list.map_s (f%some) l >|= List.flatten
+
+
+    let texts ~filters db = 
+      apply_filter filters.datasets @@ fun datasets ->
+      apply_filter filters.docs @@ fun docs ->
+      apply_filter filters.sects @@ fun sects ->
+      sections ~datasets ~docs ~sects db
+      >|= text_entries_of_sections
+
 
   end
 
+  (*>goto implement new db structure procs*)
   module Init = struct 
 
   end
-  (*goto implement new db structure procs*)
 
 
 end

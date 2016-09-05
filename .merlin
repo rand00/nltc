@@ -16,7 +16,9 @@ PKG batteries
 
 PKG text text.pcre text.pcre-syntax
 PKG sqlexpr sqlexpr.ppx
-PKG cow #cow.syntax
+PKG cow
+#cow.syntax
+
 PKG yojson
 
 PKG ppx_deriving.std

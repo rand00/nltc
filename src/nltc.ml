@@ -27,12 +27,12 @@ let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
 
 type jobs = 
+  | Cli_pomp_dbloc of string
+  | Cli_pomp_dbversion of string
+  | Cli_pomp_sections of string
   | Cli_local_clean 
   | Cli_local_insert of string
   | Cli_local_run of string
-  | Cli_pomp_sections of string
-  | Cli_pomp_dbloc of string
-  | Cli_pomp_dbversion of string
   | Cli_pomp_run of string
   | DB_pomp_analysis of int
   [@@deriving ord]
@@ -149,7 +149,7 @@ let _ =
                Lwt.return ()
              | None -> Lwt.return () )
         | Cli_pomp_dbloc arg -> 
-          (fun () -> 
+          (fun () ->
              pomp_db_loc := arg;
              Lwt.return ()
           )
@@ -173,12 +173,12 @@ let _ =
                exit 1
           )
         | Cli_pomp_run arg -> 
-          let db_pomp = 
-            let db_pomp = Sqex.open_db !pomp_db_loc in
-            at_exit (fun () -> Sqex.close_db db_pomp);
-            db_pomp
-          in
           (fun () ->
+             let db_pomp =
+               let db_pomp = Sqex.open_db !pomp_db_loc in
+               at_exit (fun () -> Sqex.close_db db_pomp);
+               db_pomp
+             in
              match !pomp_db_version with
              | `V1 -> 
                Arg_aux.run_db_cli 
@@ -186,9 +186,10 @@ let _ =
                  arg 
              | `V2 ->
                let filters =
-                 (*goto define arg for doc's*)
+                 (*>goto implement arg for doc's*)
+                 (*>goto implement arg for datasets*)
                  DB.PompV2.T.(
-                   { sects = !pomp_db_sections; docs = `All }
+                   { sects = !pomp_db_sections; docs = `All; datasets = `All }
                  )
                in
                Arg_aux.run_db_cli 
@@ -224,7 +225,7 @@ let _ =
            ~db:(db_pomp, !pomp_db_version)
 *)
       )
-  in
+  in 
   Lwt_main.run @@ Lwt_list.iter_s (fun f -> f ()) job_thunks
 
 

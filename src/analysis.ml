@@ -103,7 +103,7 @@ let _ = begin
 end
 *)
 
-let compare_tmatch_on_score ((_, _, txm_score), _) ((_, _, txm_score'), _) =
+let compare_txtmatch_on_score ((_, _, txm_score), _) ((_, _, txm_score'), _) =
   Float.compare txm_score' txm_score
 
 

@@ -127,6 +127,13 @@ let print_analysis_results txt_matches ~show_token ~show_txtID =
   Lwt_list.iter_s print_txt_match txt_matches
   >> Lwt_io.printl ""  
 
+let filter_txtmatches_on ?(txtmatch_lowbound=None) txtmatches =
+  match txtmatch_lowbound with
+  | Some txtmatch_lowbound -> 
+    List.filter (fun ((_, _, txm_score), _) ->
+        txm_score >= txtmatch_lowbound
+      ) txtmatches
+  | None -> txtmatches
 
 (*gomaybe move the signature into mli instead, if possible?*)
 let common_handler :
@@ -213,15 +220,9 @@ let common_handler :
            ~text_id:TextEntry.id
            ~equal_loose:Eq_TokenWrap.equal_loose
            ~callback_mod
-         >|= (fun txtmatches ->
-             match options.txtmatch_lowbound with
-             | Some txtmatch_lowbound -> 
-               List.filter (fun ((_, _, txm_score), _) ->
-                   txm_score >= txtmatch_lowbound
-                 ) txtmatches
-             | None -> txtmatches
-           )
-         >|= List.sort Analysis.compare_tmatch_on_score
+         >|= filter_txtmatches_on
+           ~txtmatch_lowbound:options.txtmatch_lowbound
+         >|= List.sort Analysis.compare_txtmatch_on_score
          >>= print_analysis_results
            ~show_token:(Token.to_tstring%TokenWrap.token)
            (*< goto depend on printing of loc info cli-arg*)

@@ -77,7 +77,7 @@ end
 
 
 let print_text_id id_str =
-  Lwt_io.printf "\nDocument %s:\n" id_str
+  Lwt_io.printf "\n\nDocument %s:\n" id_str
 
 let print_content ~show_tid ~show_text texts =
   Lwt_list.iter_s (fun text ->
@@ -113,7 +113,7 @@ let print_analysis_results txt_matches ~show_token ~show_txtID =
       (show_token t')
       score in
   let print_txt_match ((tx1id, tx2id, txm_score), matches) = 
-    Lwt_io.printf "Document \"%s\" and Document \"%s\"\
+    Lwt_io.printf "\nDocument \"%s\" and Document \"%s\"\
                    , match-score -->  %f\n"
       (show_txtID tx1id) 
       (show_txtID tx2id) 
@@ -124,10 +124,6 @@ let print_analysis_results txt_matches ~show_token ~show_txtID =
   >> Lwt_io.printl ""  
 
 
-(*gomaybe
-  . the fc-module-args could become one module instead? 
-    < (think of how to construct dynamically, practically)
-*)
 (*gomaybe move the signature into mli instead, if possible?*)
 let common_handler :
   type text_entry token_wrap . 
@@ -163,7 +159,7 @@ let common_handler :
       match cli_arg with 
 
       | "token" ->
-        Lwt_io.printl header >>
+        Lwt_io.print header >>
         (texts >>=
          Lwt_list.iter_s
            (fun text ->
@@ -175,11 +171,11 @@ let common_handler :
                  ~sntc_sep:sentence_sep)
            )
          >> Lwt_io.printl 
-           "--------------- Printing of tokens DONE ----------------"
+           "\n--------------- Printing of tokens DONE ----------------"
         )
 
       | "token_types" ->
-        Lwt_io.printl header >> 
+        Lwt_io.print header >> 
         (texts >>=
          Lwt_list.iter_s
            (fun text ->
@@ -191,17 +187,17 @@ let common_handler :
                  ~sntc_sep:sentence_sep)
            )
          >> Lwt_io.printl 
-           "----------- Printing of tokens + types DONE ------------"
+           "\n----------- Printing of tokens + types DONE ------------"
         )
 
       | "content" ->
-        Lwt_io.printl header >>
+        Lwt_io.print header >>
         texts >>=
         print_content 
           ~show_tid:TextEntry.(show_id%id)
           ~show_text:TextEntry.(show_text%text)
         >> Lwt_io.printl 
-          "------------ Printing of text-content DONE --------------"
+          "\n------------ Printing of text-content DONE --------------"
 
       | "compare" ->
         Lwt_io.printl header >>
@@ -217,7 +213,6 @@ let common_handler :
            (*< goto depend on printing of loc info cli-arg*)
            ~show_txtID:TextEntry.show_id
         )
-
 
       | _ -> (prerr_endline header; exit 1)
   

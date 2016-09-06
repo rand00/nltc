@@ -662,11 +662,6 @@ module PompV2 = struct
 
   end
 
-
-  module Ins = struct 
-
-  end
-
   module Sel = struct 
 
     (*We call this either once or several times, depending on filters*)
@@ -755,7 +750,6 @@ module PompV2 = struct
       sections ~datasets ~docs ~sects db
       >|= text_entries_of_sections
 
-
   end
 
   (*>goto implement new db structure procs*)
@@ -763,7 +757,12 @@ module PompV2 = struct
 
   end
 
+  module Ins = struct 
 
+  end
+
+
+  
 end
 
 

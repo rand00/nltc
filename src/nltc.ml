@@ -29,6 +29,8 @@ let (>|=) = Lwt.(>|=)
 type jobs = 
   | Cli_pomp_dbloc of string
   | Cli_pomp_dbversion of string
+  | Cli_pomp_datasets of string
+  | Cli_pomp_documents of string
   | Cli_pomp_sections of string
   | Cli_local_clean 
   | Cli_local_insert of string
@@ -79,11 +81,20 @@ let _ =
            "         compare          -> Output a sorted list of \
                                          matching text's.\n"]);
 
+      ("--db-pomp-datasets", 
+       Arg.String (fun arg -> add_job @@ Cli_pomp_datasets arg),
+       ": Controls which datasets to include in comparison of texts \
+          of [db-pomp].\n      Supply a comma-separated string of \
+          numbers or the string \"all\".\n");      
+
+      ("--db-pomp-documents", 
+       Arg.String (fun arg -> add_job @@ Cli_pomp_documents arg),
+       ": Like '--db-pomp-datasets', but filters documents.\n");
+      
       ("--db-pomp-sections", 
        Arg.String (fun arg -> add_job @@ Cli_pomp_sections arg),
-       ": Controls which sections to include in comparison of texts \
-          of [db-pomp].\n      Supply a comma-separated string of \
-          numbers.\n");
+       ": Like '--db-pomp-datasets', but filters sections/template-\
+        title-id's.\n");
 
       ("--db-pomp-loc", 
        Arg.String (fun arg -> add_job @@ Cli_pomp_dbloc arg),
@@ -102,7 +113,9 @@ let _ =
 
       ("--run-id", Arg.Int (fun id -> add_job @@ DB_pomp_analysis id),
        ": Starts an analysis with the argument 'analysis-ID', \
-        whos settings are listed in\n      the Pomp database.\n")
+        which's settings are listed in\n      the Pomp database.\
+        This means that none of the settings given via the CLI\n\
+        \      counts.\n")
     ] 
 
     (fun file -> add_job @@ Cli_local_insert file
@@ -113,7 +126,9 @@ let _ =
          "  The last arguments given on cmd-line are loaded as text-files \
           into [db-local].\n" ]);
 
-  let pomp_db_sections = ref `All 
+  let pomp_db_datasets = ref `All         
+  and pomp_db_docs = ref `All       
+  and pomp_db_sects = ref `All
   and pomp_db_version = ref `V2 
   and pomp_db_loc = ref "../db/POMP_new_data.sqlite"
   in
@@ -141,11 +156,25 @@ let _ =
           (fun () -> 
              db_local >>= fun db -> 
              Arg_aux.run_db_cli (`Local db) arg)
+        | Cli_pomp_datasets arg -> 
+          (fun () ->
+             match Arg_aux.parse_filter arg with
+             | Some filter -> 
+               pomp_db_datasets := filter;
+               Lwt.return ()
+             | None -> Lwt.return () )
+        | Cli_pomp_documents arg -> 
+          (fun () ->
+             match Arg_aux.parse_filter arg with
+             | Some filter -> 
+               pomp_db_docs := filter;
+               Lwt.return ()
+             | None -> Lwt.return () )
         | Cli_pomp_sections arg -> 
           (fun () ->
-             match Arg_aux.pomp_sections arg with
-             | Some secs -> 
-               pomp_db_sections := secs;
+             match Arg_aux.parse_filter arg with
+             | Some filter -> 
+               pomp_db_sects := filter;
                Lwt.return ()
              | None -> Lwt.return () )
         | Cli_pomp_dbloc arg -> 
@@ -182,14 +211,24 @@ let _ =
              match !pomp_db_version with
              | `V1 -> 
                Arg_aux.run_db_cli 
-                 (`Pomp_v1 (db_pomp, !pomp_db_sections))
+                 (`Pomp_v1 (db_pomp, !pomp_db_sects))
                  arg 
              | `V2 ->
+               let string_of_filter = function
+                   `All -> "All"
+                 | `List l -> List.map Int.to_string l |> String.concat ","
+               in
+               Printf.printf "Sections-filter : %s\nDocuments-filter : %s\n\
+                              Datasets-filter : %s\n"
+                 (string_of_filter !pomp_db_sects)
+                 (string_of_filter !pomp_db_docs)
+                 (string_of_filter !pomp_db_datasets);
+               flush_all ();
                let filters =
-                 (*>goto implement arg for doc's*)
-                 (*>goto implement arg for datasets*)
                  DB.PompV2.T.(
-                   { sects = !pomp_db_sections; docs = `All; datasets = `All }
+                   { sects = !pomp_db_sects
+                   ; docs = !pomp_db_docs
+                   ; datasets = !pomp_db_datasets }
                  )
                in
                Arg_aux.run_db_cli 
@@ -197,12 +236,12 @@ let _ =
                  arg 
           )
         | DB_pomp_analysis anal_id -> 
-        (*let db_pomp = 
-            let db_pomp = Sqex.open_db !pomp_db_loc in
-            at_exit (fun () -> Sqex.close_db db_pomp);
-            db_pomp
-          in *)
-          (fun () -> 
+          (fun () ->
+             (*let db_pomp = 
+                 let db_pomp = Sqex.open_db !pomp_db_loc in
+                 at_exit (fun () -> Sqex.close_db db_pomp);
+                 db_pomp
+               in *)
              let version = match !pomp_db_version 
                with `V1 -> "V1" | `V2 -> "V2"
              in 

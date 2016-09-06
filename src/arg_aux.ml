@@ -91,7 +91,7 @@ let sentence_sep =
   "--------------------- NEW SENTENCE ---------------------"
   ^"\n"
 
-let pomp_sections arg = 
+let parse_filter arg = 
   let rec aux acc = function 
     | "all" -> Some `All
     | <:re< [",;"]* (["0"-"9"]+ as id) (_* as rest) >> -> 

@@ -228,6 +228,8 @@ let common_handler :
            (*< goto depend on printing of loc info cli-arg*)
            ~show_txtID:TextEntry.show_id
         )
+        >> Lwt_io.printl 
+          "-------------- Comparison of texts DONE ----------------"
 
       | _ -> (prerr_endline header; exit 1)
   

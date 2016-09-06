@@ -30,6 +30,10 @@ let (>|=) = Lwt.(>|=)
 
 let id x = x
 
+type options = {
+  txtmatch_lowbound : float option
+}
+
 (* > goto fix for new code + when implemented PompV2 db actions
 
 let run_anal_pomp ?(limit=None) ?(section_id=19) ~db ~anal_id = 
@@ -142,6 +146,7 @@ let common_handler :
     with type t = token_wrap
      and type score = float) -> 
   callback_mod:(module CB.S) ->
+  options:options -> 
   unit Lwt.t
   = fun 
     ~cli_arg
@@ -151,6 +156,7 @@ let common_handler :
     ~tokenwrap_mod
     ~eq_tokenwrap_mod
     ~callback_mod
+    ~options
     -> 
       let module TextEntry = (val textentry_mod) in
       let module TokenWrap = (val tokenwrap_mod) in
@@ -206,7 +212,15 @@ let common_handler :
            ~text_to_tokenwraps:TokenWrap.text_to_wraps
            ~text_id:TextEntry.id
            ~equal_loose:Eq_TokenWrap.equal_loose
-           ~callback_mod 
+           ~callback_mod
+         >|= (fun txtmatches ->
+             match options.txtmatch_lowbound with
+             | Some txtmatch_lowbound -> 
+               List.filter (fun ((_, _, txm_score), _) ->
+                   txm_score >= txtmatch_lowbound
+                 ) txtmatches
+             | None -> txtmatches
+           )
          >|= List.sort Analysis.compare_tmatch_on_score
          >>= print_analysis_results
            ~show_token:(Token.to_tstring%TokenWrap.token)
@@ -221,8 +235,8 @@ let common_handler :
   . callback-mod can be chosen/built dynamically from cli-arg spec
 *)
 (*>We grab texts first to support different function interfaces over time*)
-let run_db_cli : 'db -> 'arg -> unit Lwt.t 
-  = fun db cli_arg -> match db with 
+let run_db_cli : db:'db -> options:options -> 'arg -> unit Lwt.t 
+  = fun ~db ~options cli_arg -> match db with 
     | `Local db ->
       common_handler ~cli_arg
         ~texts:(DB.Local.Sel.texts db)
@@ -231,6 +245,7 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
         ~tokenwrap_mod:(module DB.Local.TokenWrap)
         ~eq_tokenwrap_mod:(module DB.Local.Eq_TokenWrap)
         ~callback_mod:(module CB.NoAction)
+        ~options
 
     | `Pomp_v1 (db, sections) -> 
       common_handler ~cli_arg
@@ -240,6 +255,7 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
         ~tokenwrap_mod:(module DB.PompV1.TokenWrap)
         ~eq_tokenwrap_mod:(module DB.PompV1.Eq_TokenWrap)
         ~callback_mod:(module CB.NoAction)
+        ~options
 
     | `Pomp_v2 (db, filters) ->
       common_handler ~cli_arg
@@ -249,7 +265,7 @@ let run_db_cli : 'db -> 'arg -> unit Lwt.t
         ~tokenwrap_mod:(module DB.PompV2.TokenWrap)
         ~eq_tokenwrap_mod:(module DB.PompV2.Eq_TokenWrap)
         ~callback_mod:(module CB.NoAction)
-
+        ~options
 
 
 

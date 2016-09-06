@@ -26,16 +26,17 @@ module Sqex = Sqlexpr
 let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
 
-type jobs = 
+type jobs =
+  | Cli_txtmatch_lowbound of float
   | Cli_pomp_dbloc of string
   | Cli_pomp_dbversion of string
   | Cli_pomp_datasets of string
   | Cli_pomp_documents of string
   | Cli_pomp_sections of string
+  | Cli_pomp_run of string
   | Cli_local_clean 
   | Cli_local_insert of string
   | Cli_local_run of string
-  | Cli_pomp_run of string
   | DB_pomp_analysis of int
   [@@deriving ord]
 
@@ -80,6 +81,11 @@ let _ =
                                          db].\n"; 
            "         compare          -> Output a sorted list of \
                                          matching text's.\n"]);
+
+      ("--txtmatch-lowbound", 
+       Arg.Float (fun arg -> add_job @@ Cli_txtmatch_lowbound arg),
+       ": Sets the lower bound for text-matches to be included in\
+        comparison results.\n");      
 
       ("--db-pomp-datasets", 
        Arg.String (fun arg -> add_job @@ Cli_pomp_datasets arg),
@@ -126,7 +132,8 @@ let _ =
          "  The last arguments given on cmd-line are loaded as text-files \
           into [db-local].\n" ]);
 
-  let pomp_db_datasets = ref `All         
+  let options = ref Arg_aux.({ txtmatch_lowbound = None })
+  and pomp_db_datasets = ref `All         
   and pomp_db_docs = ref `All       
   and pomp_db_sects = ref `All
   and pomp_db_version = ref `V2 
@@ -136,6 +143,12 @@ let _ =
     List.sort compare_jobs !jobs
     |> List.map 
       (function
+        | Cli_txtmatch_lowbound lowbound ->
+          (fun () ->
+             options :=
+               Arg_aux.({ !options with txtmatch_lowbound = Some lowbound });
+             Lwt.return ()
+          )
         | Cli_local_clean -> 
           (fun () -> db_local >>= DB.Local.del_docs)
         | Cli_local_insert file -> 
@@ -155,7 +168,7 @@ let _ =
         | Cli_local_run arg -> 
           (fun () -> 
              db_local >>= fun db -> 
-             Arg_aux.run_db_cli (`Local db) arg)
+             Arg_aux.run_db_cli arg ~db:(`Local db) ~options:!options)
         | Cli_pomp_datasets arg -> 
           (fun () ->
              match Arg_aux.parse_filter arg with
@@ -210,9 +223,9 @@ let _ =
              in
              match !pomp_db_version with
              | `V1 -> 
-               Arg_aux.run_db_cli 
-                 (`Pomp_v1 (db_pomp, !pomp_db_sects))
-                 arg 
+               Arg_aux.run_db_cli arg 
+                 ~db:(`Pomp_v1 (db_pomp, !pomp_db_sects))
+                 ~options:!options
              | `V2 ->
                let string_of_filter = function
                    `All -> "All"
@@ -231,9 +244,9 @@ let _ =
                    ; datasets = !pomp_db_datasets }
                  )
                in
-               Arg_aux.run_db_cli 
-                 (`Pomp_v2 (db_pomp, filters))
-                 arg 
+               Arg_aux.run_db_cli arg 
+                 ~db:(`Pomp_v2 (db_pomp, filters))
+                 ~options:!options
           )
         | DB_pomp_analysis anal_id -> 
           (fun () ->

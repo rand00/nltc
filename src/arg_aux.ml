@@ -172,7 +172,7 @@ let common_handler :
       match cli_arg with 
 
       | "token" ->
-        Lwt_io.print header >>
+        Lwt_io.printl header >>
         (texts >>=
          Lwt_list.iter_s
            (fun text ->
@@ -188,7 +188,7 @@ let common_handler :
         )
 
       | "token_types" ->
-        Lwt_io.print header >> 
+        Lwt_io.printl header >> 
         (texts >>=
          Lwt_list.iter_s
            (fun text ->

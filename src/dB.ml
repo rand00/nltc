@@ -665,7 +665,16 @@ module PompV2 = struct
   module Sel = struct 
 
     (*We call this either once or several times, depending on filters*)
-    let sections ~datasets ~docs ~sects db = 
+    let sections ~datasets ~docs ~sects db =
+(*
+      let s = function
+        | Some i -> "\"Some "^Int.to_string i^"\""
+        | None -> "None"
+      in
+      Lwt_io.printf ">> selecting : dataset %s, doc %s, sect %s >>\n"
+        (s datasets) (s docs) (s sects)
+      >>
+*)
       Sqex.select db 
         [%sqlc
           "select @d{structurizer_documents_id},
@@ -694,6 +703,11 @@ module PompV2 = struct
         sects sects
     (*< needed this null-check with sqlexpr as we cannot construct 
         strings with this lib at runtime*)
+    (*
+      >>= fun list -> 
+      Lwt_list.iter_s (fun (_,pid,_,s) -> Lwt_io.printf "part_id:%d, content: %s\n" pid s) list >>
+      Lwt.return list
+    *)
 
     module TMap = 
       Map.Make (struct
@@ -709,19 +723,21 @@ module PompV2 = struct
         { part_id = tit_id
         ; sect_id = templ_tit_id
         ; part = content } in
-      let new_text : T.text_entry =
-        { text_id = doc_id
-        ; parts_ids = [tit_id]
-        ; sects_ids = [templ_tit_id]
-        ; text = [part] }
-      in
-      TMap.modify_def new_text doc_id (fun t -> 
-          { t with
-            parts_ids = tit_id::t.parts_ids
-          ; sects_ids = templ_tit_id::t.sects_ids
-          ; text = part::t.text }
+      TMap.modify_opt doc_id
+        (function
+          | Some t -> 
+            Some { t with
+                   parts_ids = tit_id::t.parts_ids
+                 ; sects_ids = templ_tit_id::t.sects_ids
+                 ; text = part::t.text }
+          | None ->
+            Some { text_id = doc_id
+                 ; parts_ids = [tit_id]
+                 ; sects_ids = [templ_tit_id]
+                 ; text = [part] }            
         ) acc_texts
     
+
     let text_entries_of_sections sections =
       List.fold_right text_entry_of_section
         sections TMap.empty
@@ -733,14 +749,12 @@ module PompV2 = struct
           ; sects_ids = List.sort_uniq Int.compare t.sects_ids }
         )
     
-    let some x = Some x
-
     (*with semantics where None = All, see 'sections'*)
     let apply_filter filter f =
       match filter with 
       | `All -> f None 
       | `List l ->
-        Lwt_list.map_s (f%some) l >|= List.flatten
+        Lwt_list.map_s (f%Option.some) l >|= List.flatten
 
 
     let texts ~filters db = 

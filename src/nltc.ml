@@ -133,8 +133,8 @@ let _ =
           into [db-local].\n" ]);
 
   let options = ref Arg_aux.({ txtmatch_lowbound = None })
-  and pomp_db_datasets = ref `All         
-  and pomp_db_docs = ref `All       
+  and pomp_db_datasets = ref `All 
+  and pomp_db_docs = ref `All 
   and pomp_db_sects = ref `All
   and pomp_db_version = ref `V2 
   and pomp_db_loc = ref "../db/POMP_new_data.sqlite"
@@ -146,7 +146,8 @@ let _ =
         | Cli_txtmatch_lowbound lowbound ->
           (fun () ->
              options :=
-               Arg_aux.({ !options with txtmatch_lowbound = Some lowbound });
+               Arg_aux.({ !options with
+                          txtmatch_lowbound = Some lowbound });
              Lwt.return ()
           )
         | Cli_local_clean -> 
@@ -227,15 +228,17 @@ let _ =
                  ~db:(`Pomp_v1 (db_pomp, !pomp_db_sects))
                  ~options:!options
              | `V2 ->
-               let string_of_filter = function
+               let s = function
                    `All -> "All"
-                 | `List l -> List.map Int.to_string l |> String.concat ","
+                 | `List l ->
+                   ("[" :: List.map Int.to_string l @ ["]"])
+                   |> String.concat ", "
                in
-               Printf.printf "Sections-filter : %s\nDocuments-filter : %s\n\
-                              Datasets-filter : %s\n"
-                 (string_of_filter !pomp_db_sects)
-                 (string_of_filter !pomp_db_docs)
-                 (string_of_filter !pomp_db_datasets);
+               Printf.printf "Datasets-filter : %s\nDocuments-filter : %s\n\
+                              Sections-filter : %s\n"
+                 (s !pomp_db_datasets)
+                 (s !pomp_db_docs)
+                 (s !pomp_db_sects);
                flush_all ();
                let filters =
                  DB.PompV2.T.(
@@ -248,7 +251,7 @@ let _ =
                  ~db:(`Pomp_v2 (db_pomp, filters))
                  ~options:!options
           )
-        | DB_pomp_analysis anal_id -> 
+        | DB_pomp_analysis an_id -> 
           (fun () ->
              (*let db_pomp = 
                  let db_pomp = Sqex.open_db !pomp_db_loc in
@@ -265,7 +268,7 @@ let _ =
                 \    pomp-db location: %s\n\
                 \    pomp-db version: %s\n\
                 \  Congratz.\n"
-               anal_id
+               an_id
                !pomp_db_loc
                version;
                 Lwt.return ()
@@ -273,7 +276,7 @@ let _ =
 (*
        (fun () -> 
          Arg_aux.run_anal_pomp 
-           ~anal_id
+           ~an_id
            ~db:(db_pomp, !pomp_db_version)
 *)
       )

@@ -34,29 +34,6 @@ type options = {
   txtmatch_lowbound : float option
 }
 
-(* > goto fix for new code + when implemented PompV2 db actions
-
-let run_anal_pomp ?(limit=None) ?(section_id=19) ~db ~anal_id = 
-  match db with 
-  | db, `V1 -> 
-    let callback_mod = 
-      (module struct
-        let put_mtokens = (DB.PompV1.Ins.stats_v1 ~db ~anal_id)
-      end : CB.IntfA) in
-    DB.PompV1.Init.stats db >>
-    DB.PompV1.Sel.section_concat ~section_id db
-    (* < goto goo <- we need to read anal-settings from a table and use 'sections'*)
-    >|= Analysis.run ~callback_mod
-    (*< goto we need to control which algo to use; cmp_sett, anl_sett (use beforementioned)*)
-    >>= fun _ -> Lwt.return_unit
-   (* < goto goo <- iter over result of analysis and insert in db instead of incremental update*)
-   (* < goto later <- make cb-mod update progress once in a while (not each time) 
-     (do this by having internal state or given 'i' as arg?)*)
-  | db, `V2 -> 
-    assert false
-    (*< goto implement v2 version when DB.V2 is implemented*)
-*)
-  
 module Headers = struct 
 
   let gen_headers name arg = [
@@ -270,6 +247,63 @@ let run_db_cli : db:'db -> options:options -> 'arg -> unit Lwt.t
         ~callback_mod:(module CB.NoAction)
         ~options
 
+(* > gomaybe fix for new code + when implemented PompV2 db actions *)
+(*goo*)
 
+let run_anal_pomp ~db ~an_id = 
+  match db with 
+  | db, `V1 ->
+    Lwt.fail_with "Nltc: We do not support Pomp V1 for DB-based analysis now."
+    (*
+    let callback_mod = 
+      (module struct
+        let put_mtokens = (DB.PompV1.Ins.stats_v1 ~db ~anal_id)
+      end : CB.IntfA) in
+    DB.PompV1.Init.stats db >>
+    DB.PompV1.Sel.section_concat ~section_id db
+    (* < goto goo <- we need to read anal-settings from a table and use 'sections'*)
+    >|= Analysis.run ~callback_mod
+    (*< goto we need to control which algo to use; cmp_sett, anl_sett (use beforementioned)*)
+    >>= fun _ -> Lwt.return_unit
+   (* < goto goo <- iter over result of analysis and insert in db instead of incremental update*)
+   (* < goto later <- make cb-mod update progress once in a while (not each time) 
+     (do this by having internal state or given 'i' as arg?)*)
+   *)
+  | db, `V2 -> 
+    (*> goto implement v2 version when DB.V2 is implemented
+      . (later) load settings from db (make easily read specification to andreas)
+      . (later) check all db-tables for consistency + check that the data we need is there
+      . make analysis (+ cmp-texts) return tokenwraps to insert data into db
+      . write code as I want it to be here (+ insertion-code flow)
+      . add placeholders to DB pompv2 for insertion so we compile
+      . DB: implement insertion procs
+      . change 'run-analysis' job in Nltc 
+    *)
+    let open DB.PompV2
+    in
+    let equal_token_loose t t' =
+      let cmp_token_settings = Cmp_token.std_cmp_settings in
+      let token = TokenWrap.token in
+      Cmp_token.TokenCmpLoose.equal (token t) (token t')
+        ~settings:cmp_token_settings
+        ~verbose:false
+    in
+    let txt_filters =
+      { T.datasets = `All;
+        T.docs = `All;
+        T.sects = `All; }
+    and options = { txtmatch_lowbound = None } in
+    let callback_mod = (module CB.NoAction : CB.S) 
+    in
+    Sel.texts ~filters:txt_filters db
+    >>= Analysis.run
+      ~text_to_tokenwraps:TokenWrap.text_to_wraps
+      ~text_id:TextEntry.id
+      ~equal_loose:equal_token_loose
+      ~callback_mod
+    >|= filter_txtmatches_on
+      ~txtmatch_lowbound:options.txtmatch_lowbound
+
+  
 
 

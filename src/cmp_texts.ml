@@ -20,9 +20,7 @@
 
 open Batteries
 
-(*goto define type + std-settings for comparisons of texts*)
-
-(*goto place in separate module?*)
+(* earlier experiment with new match types for matching sentences as well
 type 'a match_ = {
   id0 : 'a;
   id1 : 'a;
@@ -43,6 +41,7 @@ and result = {
   match_pct : float;
   matches : result_parts;
 }
+*)
 
 let rec find f = function
   | [] -> None
@@ -56,25 +55,13 @@ let rec find f = function
    worst case time, as each token from the first text is compared with the
    respectively compatible tokens from the other text (some token-type
    combinations are excluded).*)
-(*goto supply func-arg for 
-    . wrapping tokens after tokenization / or just tokenize func-arg
-      > type token.t list list -> token-wrap list
-      > This also annihilates list.flatten from this code
-    ? > 
-      . get token from wrap / or just equal_score func-arg
-      . get text from text-wrap? (or just tokenize-wrapper with text-type as arg)
-      . how to get text id? <- get_txtID ? 
-    . the last 3(?4) could be solved by a fc-module with func's for doing this
-      > equal_score could also be defined in fc-mod?
-    @ goto research where I would wan't to define these things 
-      -> where should control be
-    @ goto research future dependencies!!
-      > equal_score would like to depend on token-wrap; not just token
-        > this means that equal score could just as well be defined inside fc-module, 
-          as it will depend on the type inside this (could of course get fun-args for unwrapping..)
-          > useful now? NO - let's fuckin parametrize the world + all it's constituent atoms
-  > see experi../loca..ml*)
-(*goto goo call this func with correct args*)
+(*goto
+  . group alike tokens from each text 
+    . and only compare one of these with all groups of other text?
+      > bad thing about this is that we might loose matches; maybe we
+        go through all tokens in a group and test if some token matches
+        in other group; if yes, we quit comparison with success
+*)
 let cmp_loose ~equal_loose ~text_to_tokenwraps ~text_id tx1 tx2 = 
   let tx1_toks = text_to_tokenwraps tx1 
   and tx2_toks = text_to_tokenwraps tx2
@@ -94,29 +81,10 @@ let cmp_loose ~equal_loose ~text_to_tokenwraps ~text_id tx1 tx2 =
   (text_id tx1, text_id tx2, acc_score), matches
 
 
-(*for debugging parajobs*)
-(*
-let cmp_loose' ~equal_score (tx1_id, tx1_toks) (tx2_id, tx2_toks) = 
-  let matches, acc_score = 
-    List.fold_right 
-      (fun tx1_tok ((matches, acc_score) as acc) -> 
-         match 
-           find 
-             (fun tx2_tok -> equal_score tx1_tok tx2_tok) 
-             tx2_toks
-         with
-         | Some (tx2_tok, score) -> 
-           ((tx1_tok, tx2_tok, score) :: matches
-           , acc_score +. score)
-         | None -> acc
-      ) tx1_toks ([], 0.)
-  in
-  (tx1_id, tx2_id, acc_score), matches
-*)  
-
 (*goto return new result type*)
 (*goto rewrite to fit new DB module structure*)
-(**Same as [cmp_twotexts_exp] but uses Set's for comparing sections*)
+(**Same as [cmp_loose] but uses Set's for comparing sections; tokens need be 
+   ordered (which cmp_loose doesn't need)*)
 (*
 let cmp_strict
     ~(callback_mod : (module CB.S))

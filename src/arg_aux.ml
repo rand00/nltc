@@ -113,7 +113,7 @@ let filter_txtmatches_on ?(txtmatch_lowbound=None) txtmatches =
   | None -> txtmatches
 
 (*gomaybe move the signature into mli instead, if possible?*)
-let common_handler :
+let cli_handler :
   type text_entry token_wrap . 
   cli_arg:'a -> 
   texts:text_entry list Lwt.t ->
@@ -206,7 +206,7 @@ let common_handler :
            ~show_txtID:TextEntry.show_id
         )
         >> Lwt_io.printl 
-          "-------------- Comparison of texts DONE ----------------"
+          "\n--------------- Comparison of texts DONE ----------------"
 
       | _ -> (prerr_endline header; exit 1)
   
@@ -218,7 +218,7 @@ let common_handler :
 let run_db_cli : db:'db -> options:options -> 'arg -> unit Lwt.t 
   = fun ~db ~options cli_arg -> match db with 
     | `Local db ->
-      common_handler ~cli_arg
+      cli_handler ~cli_arg
         ~texts:(DB.Local.Sel.texts db)
         ~header:(Headers.header_of_arg Headers.local_db cli_arg)
         ~textentry_mod:(module DB.Local.TextEntry)
@@ -228,7 +228,7 @@ let run_db_cli : db:'db -> options:options -> 'arg -> unit Lwt.t
         ~options
 
     | `Pomp_v1 (db, sections) -> 
-      common_handler ~cli_arg
+      cli_handler ~cli_arg
         ~texts:(DB.PompV1.Sel.texts ~sections db)
         ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
         ~textentry_mod:(module DB.PompV1.TextEntry)
@@ -238,7 +238,7 @@ let run_db_cli : db:'db -> options:options -> 'arg -> unit Lwt.t
         ~options
 
     | `Pomp_v2 (db, filters) ->
-      common_handler ~cli_arg
+      cli_handler ~cli_arg
         ~texts:(DB.PompV2.Sel.texts ~filters db)
         ~header:(Headers.header_of_arg Headers.pomp_db cli_arg)
         ~textentry_mod:(module DB.PompV2.TextEntry)
@@ -253,7 +253,7 @@ let run_db_cli : db:'db -> options:options -> 'arg -> unit Lwt.t
 let run_anal_pomp ~db ~an_id = 
   match db with 
   | db, `V1 ->
-    Lwt.fail_with "Nltc: We do not support Pomp V1 for DB-based analysis now."
+    Lwt.fail_with "Nltc: We do not support Pomp V1 for DB-based analysis for now."
     (*
     let callback_mod = 
       (module struct
@@ -281,8 +281,9 @@ let run_anal_pomp ~db ~an_id =
     *)
     let open DB.PompV2
     in
+    let cmp_token_settings = Cmp_token.std_cmp_settings
+    in
     let equal_token_loose t t' =
-      let cmp_token_settings = Cmp_token.std_cmp_settings in
       let token = TokenWrap.token in
       Cmp_token.TokenCmpLoose.equal (token t) (token t')
         ~settings:cmp_token_settings

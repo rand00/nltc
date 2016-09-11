@@ -62,10 +62,7 @@ let rec find f = function
         go through all tokens in a group and test if some token matches
         in other group; if yes, we quit comparison with success
 *)
-let cmp_loose ~equal_loose ~text_to_tokenwraps ~text_id tx1 tx2 = 
-  let tx1_toks = text_to_tokenwraps tx1 
-  and tx2_toks = text_to_tokenwraps tx2
-  in
+let cmp_loose ~equal_loose (tx1_id, tx1_toks) (tx2_id, tx2_toks) = 
   let matches, acc_score = 
     List.fold_right 
       (fun tx1_tok ((matches, acc_score) as acc) -> 
@@ -78,7 +75,7 @@ let cmp_loose ~equal_loose ~text_to_tokenwraps ~text_id tx1 tx2 =
          | None -> acc
       ) tx1_toks ([], 0.)
   in
-  (text_id tx1, text_id tx2, acc_score), matches
+  (tx1_id, tx2_id, acc_score), matches
 
 
 (*goto return new result type*)

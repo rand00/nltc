@@ -44,29 +44,33 @@ let run
     let open Lwt in
     let save_free_cores = 2 in (*goto make argument to CLI*)
     let cores = max 1 (Parallel_jobs.cores () - save_free_cores) in
-    let combinations = Combine.all (fun x y -> x,y) texts in
     let times_return = 4 in
     (*<goto 
       . test different magnitudes - also using CB for progress info! (both CLI and DB insert)
+        < brian over how to consistently summarize progress instead of relying on DB atomicity
       . make times_return CLI arg
     *)
-    (*>goto add job-queue to tokenize all texts to be compared (take out from cmp_loose); 
-      then we don't need n/2 * tokenize*)
-    let combs_chunked = 
-      Parallel_jobs.chunk ~n:(cores*times_return) combinations in
-    let jobs_cmp = 
-      List.map (fun chunk () -> 
-          Lwt_list.map_s (fun (x,y) ->
-              Cmp_texts.cmp_loose x y
-                ~equal_loose
-                ~text_to_tokenwraps
-                ~text_id
-              |> Lwt.return
-            ) chunk
-        ) combs_chunked 
+    let jobs_of_chunks f =
+      List.map (fun chunk -> 
+          (fun () -> Lwt_list.map_s f chunk)
+        )
     in
-    Parallel_jobs.Naive.exec jobs_cmp ~force_cores:(Some cores)
-    >|= List.flatten 
+    texts
+    |> Parallel_jobs.chunk ~n:(cores*times_return) 
+    |> jobs_of_chunks (fun tx ->
+        (text_id tx, text_to_tokenwraps tx) |> Lwt.return
+      )
+    |> Parallel_jobs.Naive.exec ~force_cores:(Some cores)
+    >>= fun results -> (
+      List.flatten results
+      |> Combine.all (fun x y -> x,y) 
+      |> Parallel_jobs.chunk ~n:(cores*times_return) 
+      |> jobs_of_chunks (fun (x,y) ->
+          Cmp_texts.cmp_loose x y ~equal_loose |> Lwt.return
+        ) 
+      |> Parallel_jobs.Naive.exec ~force_cores:(Some cores)
+    )
+    >|= List.flatten
 
   (**This is (should be) the faster analysis compared with the 'loose' analysis,
      but depends on an ordered comparison*)

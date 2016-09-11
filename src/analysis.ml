@@ -20,11 +20,8 @@
 
 open Batteries
 
+module PJobs = Parallel_jobs
 
-(**The [Analysis.run] function sets the analysis up with the right
-   settings avoiding mutable state, and including static typing. It
-   runs an analysis over the list of input-text's, emitting the words
-   of the sentences that match to the [callback] function. *)
 let run 
     ?(anl_sett=Settings.std_analysis)
     ~equal_loose
@@ -36,39 +33,31 @@ let run
   = 
   let open Settings in (*goto think how to design/place this module, 
                          kind of deprecated*)
-
-  (**The loose comparison of words, partly based on the
-     hamming-distance, paired with a collection of weights and other
-     parameters.*)
   let run_loose () = 
     let open Lwt in
     let save_free_cores = 2 in (*goto make argument to CLI*)
-    let cores = max 1 (Parallel_jobs.cores () - save_free_cores) in
+    let cores = max 1 (PJobs.cores () - save_free_cores) in
     let times_return = 4 in
     (*<goto 
       . test different magnitudes - also using CB for progress info! (both CLI and DB insert)
         < brian over how to consistently summarize progress instead of relying on DB atomicity
       . make times_return CLI arg
     *)
-    let jobs_of_chunks f =
-      List.map (fun chunk -> 
-          (fun () -> Lwt_list.map_s f chunk)
-        )
-    in
     texts
-    |> Parallel_jobs.chunk ~n:(cores*times_return) 
-    |> jobs_of_chunks (fun tx ->
+    |> PJobs.chunk ~n:(cores*times_return) 
+    |> PJobs.of_chunks (fun tx ->
         (text_id tx, text_to_tokenwraps tx) |> Lwt.return
       )
-    |> Parallel_jobs.Naive.exec ~force_cores:(Some cores)
-    >>= fun results -> (
-      List.flatten results
+    |> PJobs.Naive.exec ~force_cores:(Some cores)
+    >>= fun tokenwraps -> (
+      tokenwraps
+      |> List.flatten 
       |> Combine.all (fun x y -> x,y) 
-      |> Parallel_jobs.chunk ~n:(cores*times_return) 
-      |> jobs_of_chunks (fun (x,y) ->
+      |> PJobs.chunk ~n:(cores*times_return) 
+      |> PJobs.of_chunks (fun (x,y) ->
           Cmp_texts.cmp_loose x y ~equal_loose |> Lwt.return
         ) 
-      |> Parallel_jobs.Naive.exec ~force_cores:(Some cores)
+      |> PJobs.Naive.exec ~force_cores:(Some cores)
     )
     >|= List.flatten
 
@@ -98,15 +87,6 @@ let run
   | {mode = `Strict} -> Lwt.fail_with "Strict comparison deprecated"
   (*Lwt.return (run_strict ())*)
   | {mode = `Loose}  -> run_loose ()
-
-
-(*goto > remove this when not testing anymore*)
-(*
-let _ = begin
-  print_any stdout (run ());
-  print_endline ""
-end
-*)
 
 let compare_txtmatch_on_score ((_, _, txm_score), _) ((_, _, txm_score'), _) =
   Float.compare txm_score' txm_score

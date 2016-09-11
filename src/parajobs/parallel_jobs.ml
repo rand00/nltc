@@ -36,6 +36,12 @@ let chunk ~n l =
   done;
   Array.to_list ret
 
+let of_chunks f =
+  List.map (fun chunk -> 
+      (fun () -> Lwt_list.map_s f chunk)
+    )
+
+
 let force_cores_default = None
 let fallback_cores_default = 1
 

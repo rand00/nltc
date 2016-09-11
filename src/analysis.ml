@@ -34,29 +34,29 @@ let run
     (*<goto add cb for progress (in future separately for tokenization/comparison!)*)
     texts
   = 
-  let open Settings in
+  let open Settings in (*goto think how to design/place this module, 
+                         kind of deprecated*)
 
   (**The loose comparison of words, partly based on the
      hamming-distance, paired with a collection of weights and other
      parameters.*)
   let run_loose () = 
-    (*>goto this need to depend on tokenwrap type; so need to parametrize either
-      TokenWrap or equal_loose for run-time configuration (TokenWrap fc-mod can be
-      constructed before given to Analysis.run)*)
     let open Lwt in
     let save_free_cores = 2 in (*goto make argument to CLI*)
     let cores = max 1 (Parallel_jobs.cores () - save_free_cores) in
     let combinations = Combine.all (fun x y -> x,y) texts in
-    let times_return = 4 in (*goto test different magnitudes - 
-                              also using CB for progress info! (both CLI and DB insert)*)
-    (*goto add job-queue to tokenize all texts to be compared (take out from cmp_loose); 
-      then we don't need n/2 x tokenize*)
+    let times_return = 4 in
+    (*<goto 
+      . test different magnitudes - also using CB for progress info! (both CLI and DB insert)
+      . make times_return CLI arg
+    *)
+    (*>goto add job-queue to tokenize all texts to be compared (take out from cmp_loose); 
+      then we don't need n/2 * tokenize*)
     let combs_chunked = 
       Parallel_jobs.chunk ~n:(cores*times_return) combinations in
     let jobs_cmp = 
       List.map (fun chunk () -> 
           Lwt_list.map_s (fun (x,y) ->
-              (*goto goo give all args *)
               Cmp_texts.cmp_loose x y
                 ~equal_loose
                 ~text_to_tokenwraps
@@ -68,7 +68,8 @@ let run
     Parallel_jobs.Naive.exec jobs_cmp ~force_cores:(Some cores)
     >|= List.flatten 
 
-  (**This is (should be) the faster analysis compared with the 'loose' analysis*)
+  (**This is (should be) the faster analysis compared with the 'loose' analysis,
+     but depends on an ordered comparison*)
 (*
   and run_strict () =
     let tokenset_mod = 

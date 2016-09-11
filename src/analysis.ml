@@ -49,9 +49,9 @@ let run
         (text_id tx, text_to_tokenwraps tx) |> Lwt.return
       )
     |> PJobs.Naive.exec ~force_cores:(Some cores)
+    >|= List.flatten
     >>= fun tokenwraps -> (
       tokenwraps
-      |> List.flatten 
       |> Combine.all (fun x y -> x,y) 
       |> PJobs.chunk ~n:(cores*times_return) 
       |> PJobs.of_chunks (fun (x,y) ->

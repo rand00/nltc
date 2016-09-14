@@ -773,13 +773,15 @@ module PompV2 = struct
 
   module Ins = struct 
 
+    open Lwt 
+
     (*goto test with current db*)
     let clear_aux db = function
       | `TokenWraps ->
-        Sqex.execute db [%sql "DELETE FROM analytics_tokens" ] >>
+        Sqex.execute db [%sql "DELETE FROM analytics_tokens" ] <&>
         Sqex.execute db [%sql "DELETE FROM analytics_sentences" ]
       | `TxtMatches ->
-        Sqex.execute db [%sql "DELETE FROM analytics_matches_tokens" ] >>
+        Sqex.execute db [%sql "DELETE FROM analytics_matches_tokens" ] <&>
         Sqex.execute db [%sql "DELETE FROM analytics_matches_docs" ]
 
     let clear db = Lwt_list.iter_p @@ clear_aux db

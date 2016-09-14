@@ -19,6 +19,8 @@
 
 
 open Batteries
+let (>>=) = Lwt.(>>=)
+let (>|=) = Lwt.(>|=)
 
 module PJobs = Parallel_jobs
 
@@ -34,7 +36,6 @@ let run
   let open Settings in (*goto think how to design/place this module, 
                          kind of deprecated*)
   let run_loose () = 
-    let open Lwt in
     let save_free_cores = 2 in (*goto make argument to CLI*)
     let cores = max 1 (PJobs.cores () - save_free_cores) in
     let times_return = 4 in
@@ -60,6 +61,8 @@ let run
       |> PJobs.Naive.exec ~force_cores:(Some cores)
     )
     >|= List.flatten
+    >|= fun comparisons ->
+    (tokenwraps, comparisons)
 
   (**This is (should be) the faster analysis compared with the 'loose' analysis,
      but depends on an ordered comparison*)

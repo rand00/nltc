@@ -197,6 +197,7 @@ let cli_handler :
            ~text_id:TextEntry.id
            ~equal_loose:Eq_TokenWrap.equal_loose
            ~callback_mod
+         >|= snd
          >|= filter_txtmatches_on
            ~txtmatch_lowbound:options.txtmatch_lowbound
          >|= List.sort Analysis.compare_txtmatch_on_score
@@ -247,11 +248,10 @@ let run_db_cli : db:'db -> options:options -> 'arg -> unit Lwt.t
         ~callback_mod:(module CB.NoAction)
         ~options
 
-(* > gomaybe fix for new code + when implemented PompV2 db actions *)
-(*goo*)
 
-let run_anal_pomp ~db ~an_id = 
+let run_analysis_pomp ~db ~an_id = 
   match db with 
+  (* > gomaybe fix for new code + when implemented PompV2 db actions *)
   | db, `V1 ->
     Lwt.fail_with "Nltc: We do not support Pomp V1 for DB-based analysis for now."
     (*
@@ -302,8 +302,14 @@ let run_anal_pomp ~db ~an_id =
       ~text_id:TextEntry.id
       ~equal_loose:equal_token_loose
       ~callback_mod
-    >|= filter_txtmatches_on
+    >|= fun (tokens,txtmatches) -> 
+    txtmatches 
+    |> filter_txtmatches_on
       ~txtmatch_lowbound:options.txtmatch_lowbound
+      
+    (*goo*)
+    (*<goto insert tokens and txtmatches in db (while keeping track of 
+      sntc-id's, token-id's etc. for inserting next depending elem)*)
 
   
 

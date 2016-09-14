@@ -261,21 +261,13 @@ let run_analysis_pomp ~db ~an_id =
       end : CB.IntfA) in
     DB.PompV1.Init.stats db >>
     DB.PompV1.Sel.section_concat ~section_id db
-    (* < goto goo <- we need to read anal-settings from a table and use 'sections'*)
     >|= Analysis.run ~callback_mod
-    (*< goto we need to control which algo to use; cmp_sett, anl_sett (use beforementioned)*)
     >>= fun _ -> Lwt.return_unit
-   (* < goto goo <- iter over result of analysis and insert in db instead of incremental update*)
-   (* < goto later <- make cb-mod update progress once in a while (not each time) 
-     (do this by having internal state or given 'i' as arg?)*)
-   *)
+    *)
   | db, `V2 -> 
     (*> goto implement v2 version when DB.V2 is implemented
       . (later) load settings from db (make easily read specification to andreas)
       . (later) check all db-tables for consistency + check that the data we need is there
-      . make analysis (+ cmp-texts) return tokenwraps to insert data into db
-      . write code as I want it to be here (+ insertion-code flow)
-      . add placeholders to DB pompv2 for insertion so we compile
       . DB: implement insertion procs
       . change 'run-analysis' job in Nltc 
     *)
@@ -302,14 +294,23 @@ let run_analysis_pomp ~db ~an_id =
       ~text_id:TextEntry.id
       ~equal_loose:equal_token_loose
       ~callback_mod
-    >|= fun (tokens,txtmatches) -> 
-    txtmatches 
-    |> filter_txtmatches_on
-      ~txtmatch_lowbound:options.txtmatch_lowbound
-      
-    (*goo*)
+    >>= fun (tokenwraps,txtmatches) ->
+    Ins.clear db [`TokenWraps; `TxtMatches] >>
+    Ins.tokenwraps tokenwraps
+    >>= fun tokenwrap_ids -> 
+    (txtmatches 
+     |> filter_txtmatches_on
+       ~txtmatch_lowbound:options.txtmatch_lowbound
+     |> Ins.txtmatches tokenwrap_ids)
+
+(*goo*)
     (*<goto insert tokens and txtmatches in db (while keeping track of 
-      sntc-id's, token-id's etc. for inserting next depending elem)*)
+      sntc-id's, token-id's etc. for inserting next depending elem)
+      . for now we clear table before insertion (later we can memoize tokens)
+      . need implement 'Ins.tokenwraps' that returns Map of tokenwrap -> id (int)
+        . internally we keep map of [ sntc-pos (part-id/sntc-id) -> sntc-id ] 
+      . need implement 'Ins.txtmatches' that takes map as arg 
+    *)
 
   
 

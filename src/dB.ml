@@ -773,6 +773,31 @@ module PompV2 = struct
 
   module Ins = struct 
 
+    (*goto test with current db*)
+    let clear_aux db = function
+      | `TokenWraps ->
+        Sqex.execute db [%sql "DELETE FROM analytics_tokens" ] >>
+        Sqex.execute db [%sql "DELETE FROM analytics_sentences" ]
+      | `TxtMatches ->
+        Sqex.execute db [%sql "DELETE FROM analytics_matches_tokens" ] >>
+        Sqex.execute db [%sql "DELETE FROM analytics_matches_docs" ]
+
+    let clear db = Lwt_list.iter_p @@ clear_aux db
+        
+    (*goto
+      . insert tws and return [(tw,int) Map.t] 
+        . .. could use a TokenWrap.compare? (or just use pervasives...) 
+          -> prev is probabley best
+    *)
+    (*goo*)
+    let tokenwraps tws = failwith "todo" 
+
+    (*goto 
+      . insert matching texts - referencing 'docs'ids
+      . insert matching tokens - referencing tw_ids 
+    *)
+    let txtmatches tw_ids = failwith "todo"
+    
   end
 
 

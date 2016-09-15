@@ -284,9 +284,6 @@ module TokenCmpLoose = struct
         ~verbose ~settings:settings.word_sett 
     in match t1,t2 with
     | Word s1     , Word s2 
-    | Word_para s1, Word_para s2
-    | Word s1     , Word_para s2
-    | Word_para s1, Word s2
     | Num s1      , Num s2 
     | Alnumdot s1 , Alnumdot s2
     | Email s1    , Email s2 
@@ -308,22 +305,17 @@ module TokenCmpStrict = struct
   (*note: if I ever need to extend this func - look at all compare func's in this scope*)
   let find_rank = function
     | Word _ -> 0
-    | Word_para _ -> 1
-    | Pararef _ -> 2
-    | Num _ -> 3
-    | Alnumdot _ -> 4
-    | Email _ -> 5
+    | Pararef _ -> 1
+    | Num _ -> 2
+    | Alnumdot _ -> 3
+    | Email _ -> 4
 
   let compare_typerank t1 t2 = Int.compare (find_rank t1) (find_rank t2)
 
   (**Comparison function of tokens, for use for TokenSet's *)
   (*Implement later; OCR-letters option => fx "i"/"l"/"!" are equal*)
   let compare ~lowercase_conv t1 t2 = match t1,t2 with
-    (*Word and Word_para are seen as equal types here*)
     | Word s1     , Word s2 
-    | Word_para s1, Word_para s2
-    | Word s1     , Word_para s2
-    | Word_para s1, Word s2
     (*The following types don't mix with others*)
     | Num s1      , Num s2 
     | Alnumdot s1 , Alnumdot s2

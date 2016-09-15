@@ -38,7 +38,7 @@ type wrd_pos =
   | Wrd_pre_last_new of string * string (*when having looked forwards + new sentence*)
   | Wrd_last_new of string 
   | Wrd_unfin of string (*current word gets appended a new char*)
-  | Wrd_para of pararef (*when having found a paragraph reference, which are parsed differently*)
+  | Wrd_para of pararef (*when having found a paragraph reference*)
   | Wrd_last (*last word in sentence*)
 
 (**Types of tokens that get collected in sentence-lists*)

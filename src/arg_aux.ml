@@ -249,7 +249,7 @@ let run_db_cli : db:'db -> options:options -> 'arg -> unit Lwt.t
         ~options
 
 
-let run_analysis_pomp ~db ~an_id = 
+let run_analysis_pomp ~db ~analysis_id = 
   match db with 
   (* > gomaybe fix for new code + when implemented PompV2 db actions *)
   | db, `V1 ->
@@ -296,12 +296,12 @@ let run_analysis_pomp ~db ~an_id =
       ~callback_mod
     >>= fun (tokenwraps,txtmatches) ->
     Ins.clear db [`TokenWraps; `TxtMatches] >>
-    Ins.tokenwraps tokenwraps
+    Ins.tokenwraps tokenwraps ~analysis_id ~db
     >>= fun tokenwrap_ids -> 
     (txtmatches 
      |> filter_txtmatches_on
        ~txtmatch_lowbound:options.txtmatch_lowbound
-     |> Ins.txtmatches tokenwrap_ids)
+     |> Ins.txtmatches txtmatches ~tokenwrap_ids ~db)
 
 (*goo*)
     (*<goto insert tokens and txtmatches in db (while keeping track of 

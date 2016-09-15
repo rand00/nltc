@@ -531,7 +531,7 @@ module PompV2 = struct
       part_id : int;
       sect_id : int;
       text_id : int;
-    }
+    } [@@deriving ord]
     
     type token_wrap = {
       token : Token.t;
@@ -785,20 +785,60 @@ module PompV2 = struct
         Sqex.execute db [%sql "DELETE FROM analytics_matches_docs" ]
 
     let clear db = Lwt_list.iter_p @@ clear_aux db
-        
-    (*goto
-      . insert tws and return [(tw,int) Map.t] 
-        . .. could use a TokenWrap.compare? (or just use pervasives...) 
-          -> prev is probabley best
-    *)
-    (*goo*)
-    let tokenwraps tws = failwith "todo" 
 
+    module SMap = 
+      Map.Make (struct
+        type t = int (*part_id*) * int (*sntc_id*)
+        let compare = Tuple2.compare ~cmp1:Int.compare ~cmp2:Int.compare
+      end)
+
+    module TWMap =
+      Map.Make (struct
+        type t = T.token_location
+        let compare = T.compare_token_location
+      end)
+    
+    let tokenwraps ~analysis_id ~db tokenwraps =
+      Lwt_list.fold_right_s
+        (fun tw (sntc_db_ids, tw_db_ids) ->
+           let sntc_loc = (tw.location.part_id, tw.location.sntc_id) in
+           begin
+             match SMap.find sntc_loc sntc_db_ids with
+             | sntc_db_id -> Lwt.return (sntc_db_ids, sntc_db_id) 
+             | exception Not_found ->
+               (*>goto add db column for sntc pos in title*)
+               Sqex.insert db
+                 [%sqlc
+                   "insert into 
+                  analytics_sentences(fk_analytics, fk_structurizer_titles)
+                  values(%d, %d)" ]
+                 analysis_id tw.location.part_id
+               >|= fun sntc_db_id ->
+               let sntc_db_ids = SMap.add sntc_loc sntc_db_id sntc_db_ids
+               in (sntc_db_ids, sntc_db_id)
+           end
+           >>= fun (sntc_db_ids, sntc_db_id) -> 
+           Sqex.insert db
+             [%sqlc
+               "insert into 
+                  analytics_tokens(fk_analytics_sentences, type, value)
+                  values(%L, %s, %s)" ]
+             sntc_db_id
+             (Token.type_string tw.token)
+             (Token.to_string tw.token)
+           >|= fun tw_id ->
+           let tw_db_ids = TWMap.add tw.location tw_id tw_db_ids in
+           (sntc_db_ids, tw_db_ids)
+        ) tokenwraps (SMap.empty, TWMap.empty)
+      >|= fun (_, tw_db_ids) -> tw_db_ids
+
+
+    (*gooo*)
     (*goto 
       . insert matching texts - referencing 'docs'ids
       . insert matching tokens - referencing tw_ids 
     *)
-    let txtmatches tw_ids = failwith "todo"
+    let txtmatches ~db ~tokenwrap_ids txtmatches = failwith "todo"
     
   end
 

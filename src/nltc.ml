@@ -38,7 +38,7 @@ type jobs =
   | Cli_local_insert of string
   | Cli_local_run of string
   | DB_pomp_analysis of int
-  [@@deriving ord]
+[@@deriving ord]
 
 let jobs = ref []
 let add_job job = jobs := job :: !jobs
@@ -251,7 +251,7 @@ let _ =
                  ~db:(`Pomp_v2 (db_pomp, filters))
                  ~options:!options
           )
-        | DB_pomp_analysis an_id -> 
+        | DB_pomp_analysis analysis_id -> 
           (fun () ->
              (*let db_pomp = 
                  let db_pomp = Sqex.open_db !pomp_db_loc in
@@ -268,7 +268,7 @@ let _ =
                 \    pomp-db location: %s\n\
                 \    pomp-db version: %s\n\
                 \  Congratz.\n"
-               an_id
+               analysis_id
                !pomp_db_loc
                version;
                 Lwt.return ()
@@ -276,7 +276,7 @@ let _ =
 (*
        (fun () -> 
          Arg_aux.run_anal_pomp 
-           ~an_id
+           ~analysis_id
            ~db:(db_pomp, !pomp_db_version)
 *)
       )

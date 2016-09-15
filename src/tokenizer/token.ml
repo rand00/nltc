@@ -36,7 +36,6 @@ type 'a token =
 
 type token = 
   | Word of string
-  | Word_para of string
   | Num of string
   | Alnumdot of string
   | Pararef of string * string
@@ -55,26 +54,10 @@ type token =
 (*<goto extend with ppx [ord; show; eq?; yojson?; ]
 *)
 
-
-type token_wrap = {
-  token : token;   (*content of token*)
-  id_wrd  : int;      (*pr. sentence word id*)
-  id_sntc : int;     (*pr. 'parsed stream' sentence id*)
-  id_db_part : int option;   (*what is called .. 'titles' in db *)
-  id_doc : [ `Id of int | `Name of string ] option;
-} [@@deriving make]
-
-let example_token_wrap () =
-  let t = { token = Word "kd"; id_wrd = 4; id_sntc = 44; id_db_part = None; id_doc = None}
-  and t' = make_token_wrap ~token:(Word "kd") ~id_wrd:4 ~id_sntc:44 ()
-  in ()
-
-
 type t = token
 
 let to_tstring = function 
   | Word s       -> "Word(" ^ s ^ ")"
-  | Word_para s  -> "Word_para(" ^ s ^ ")"
   | Num s        -> "Num(" ^ s ^ ")"
   | Alnumdot s   -> "Alnumdot(" ^ s ^ ")"
   | Email s      -> "Email(" ^ s ^ ")"
@@ -82,13 +65,19 @@ let to_tstring = function
 
 let to_tstring_anon = function 
   | Word s
-  | Word_para s
   | Num s      
   | Alnumdot s 
   | Email s      -> s
   | Pararef (s,s') -> s^" "^s'
 
 let to_string = to_tstring_anon
+
+let type_string = function
+  | Word _ -> "Word"
+  | Num _ -> "Num"
+  | Alnumdot _ -> "AlphaNum"
+  | Email _ -> "Email"
+  | Pararef (s,s') -> "ParagraphRef"
 
 let to_json_aux to_str_fun ts = 
   let module Y = Yojson.Basic in

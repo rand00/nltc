@@ -62,6 +62,9 @@ let run
     )
     >|= List.flatten
     >|= fun comparisons ->
+    List.map snd tokenwraps
+    |> List.flatten
+    |> fun tokenwraps -> 
     (tokenwraps, comparisons)
 
   (**This is (should be) the faster analysis compared with the 'loose' analysis,

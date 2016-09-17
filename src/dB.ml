@@ -778,10 +778,10 @@ module PompV2 = struct
     (*goto test with current db*)
     let clear_aux db = function
       | `TokenWraps ->
-        Sqex.execute db [%sql "DELETE FROM analytics_tokens" ] <&>
+        Sqex.execute db [%sql "DELETE FROM analytics_tokens" ] >>
         Sqex.execute db [%sql "DELETE FROM analytics_sentences" ]
       | `TxtMatches ->
-        Sqex.execute db [%sql "DELETE FROM analytics_matches_tokens" ] <&>
+        Sqex.execute db [%sql "DELETE FROM analytics_matches_tokens" ] >>
         Sqex.execute db [%sql "DELETE FROM analytics_matches_docs" ]
 
     let clear db = Lwt_list.iter_p @@ clear_aux db
@@ -797,10 +797,13 @@ module PompV2 = struct
         type t = T.token_location
         let compare = T.compare_token_location
       end)
-    
+
+    (*goto test for stack overflow fold left / on reversed list
+    *)
+    (*goto test more*)
     let tokenwraps ~analysis_id ~db tokenwraps =
-      Lwt_list.fold_right_s
-        (fun tw (sntc_db_ids, tw_db_ids) ->
+      Lwt_list.fold_left_s
+        (fun (sntc_db_ids, tw_db_ids) tw ->
            let sntc_loc = (tw.location.part_id, tw.location.sntc_id) in
            begin
              match SMap.find sntc_loc sntc_db_ids with
@@ -810,12 +813,12 @@ module PompV2 = struct
                Sqex.insert db
                  [%sqlc
                    "insert into 
-                  analytics_sentences(fk_analytics, fk_structurizer_titles)
-                  values(%d, %d)" ]
+                      analytics_sentences(fk_analytics, fk_structurizer_titles)
+                      values(%d, %d)" ]
                  analysis_id tw.location.part_id
                >|= fun sntc_db_id ->
-               let sntc_db_ids = SMap.add sntc_loc sntc_db_id sntc_db_ids
-               in (sntc_db_ids, sntc_db_id)
+               (SMap.add sntc_loc sntc_db_id sntc_db_ids,
+                sntc_db_id)
            end
            >>= fun (sntc_db_ids, sntc_db_id) -> 
            Sqex.insert db
@@ -829,16 +832,35 @@ module PompV2 = struct
            >|= fun tw_id ->
            let tw_db_ids = TWMap.add tw.location tw_id tw_db_ids in
            (sntc_db_ids, tw_db_ids)
-        ) tokenwraps (SMap.empty, TWMap.empty)
+        ) (SMap.empty, TWMap.empty) tokenwraps 
       >|= fun (_, tw_db_ids) -> tw_db_ids
 
-
-    (*gooo*)
-    (*goto 
-      . insert matching texts - referencing 'docs'ids
-      . insert matching tokens - referencing tw_ids 
-    *)
-    let txtmatches ~db ~tokenwrap_ids txtmatches = failwith "todo"
+    (*goto test*)
+    let txtmatches ~db ~tokenwrap_ids ~analysis_id txtmatches = 
+        Lwt_list.iter_s (fun ((tx1id, tx2id, score), tokenmatches) ->
+          Sqex.insert db
+            [%sqlc
+               "insert into 
+                  analytics_matches_docs(fk_doc1, fk_doc2, score)
+                  values(%d, %d, %f)"]
+            (*analysis_id*)
+            tx1id tx2id score
+          >>= fun txtm_db_id ->
+          Lwt_list.iter_s (fun (tw, tw', tw_score) -> 
+              Sqex.execute db
+                [%sqlc
+                  "insert into
+                     analytics_matches_tokens(
+                       fk_analytics_matches_docs, 
+                       fk_token_1, fk_token_2, score
+                     )
+                     values(%L, %L, %L, %f)"]
+                txtm_db_id
+                (TWMap.find tw.location tokenwrap_ids)
+                (TWMap.find tw'.location tokenwrap_ids)
+                tw_score
+            ) tokenmatches
+        ) txtmatches 
     
   end
 

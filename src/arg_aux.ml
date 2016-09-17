@@ -21,9 +21,7 @@
 open Batteries
 
 module Sqlexpr = Sqlexpr_sqlite_lwt
-(*
 module Sqex = Sqlexpr (*module Sqlexpr need to be here for syntax extension*)
-*)
     
 let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
@@ -249,7 +247,7 @@ let run_db_cli : db:'db -> options:options -> 'arg -> unit Lwt.t
         ~options
 
 
-let run_analysis_pomp ~db ~analysis_id = 
+let run_analysis_pomp ~db analysis_id = 
   match db with 
   (* > gomaybe fix for new code + when implemented PompV2 db actions *)
   | db, `V1 ->
@@ -265,16 +263,13 @@ let run_analysis_pomp ~db ~analysis_id =
     >>= fun _ -> Lwt.return_unit
     *)
   | db, `V2 -> 
-    (*> goto implement v2 version when DB.V2 is implemented
+    (*> goto 
       . (later) load settings from db (make easily read specification to andreas)
       . (later) check all db-tables for consistency + check that the data we need is there
-      . DB: implement insertion procs
-      . change 'run-analysis' job in Nltc 
     *)
     let open DB.PompV2
     in
-    let cmp_token_settings = Cmp_token.std_cmp_settings
-    in
+    let cmp_token_settings = Cmp_token.std_cmp_settings in
     let equal_token_loose t t' =
       let token = TokenWrap.token in
       Cmp_token.TokenCmpLoose.equal (token t) (token t')
@@ -295,22 +290,14 @@ let run_analysis_pomp ~db ~analysis_id =
       ~equal_loose:equal_token_loose
       ~callback_mod
     >>= fun (tokenwraps,txtmatches) ->
+    Sqex.set_retry_on_busy true;
     Ins.clear db [`TokenWraps; `TxtMatches] >>
     Ins.tokenwraps tokenwraps ~analysis_id ~db
     >>= fun tokenwrap_ids -> 
     (txtmatches 
      |> filter_txtmatches_on
        ~txtmatch_lowbound:options.txtmatch_lowbound
-     |> Ins.txtmatches txtmatches ~tokenwrap_ids ~db)
-
-(*goo*)
-    (*<goto insert tokens and txtmatches in db (while keeping track of 
-      sntc-id's, token-id's etc. for inserting next depending elem)
-      . for now we clear table before insertion (later we can memoize tokens)
-      . need implement 'Ins.tokenwraps' that returns Map of tokenwrap -> id (int)
-        . internally we keep map of [ sntc-pos (part-id/sntc-id) -> sntc-id ] 
-      . need implement 'Ins.txtmatches' that takes map as arg 
-    *)
+     |> Ins.txtmatches ~analysis_id ~tokenwrap_ids ~db)
 
   
 

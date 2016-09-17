@@ -253,32 +253,14 @@ let _ =
           )
         | DB_pomp_analysis analysis_id -> 
           (fun () ->
-             (*let db_pomp = 
-                 let db_pomp = Sqex.open_db !pomp_db_loc in
-                 at_exit (fun () -> Sqex.close_db db_pomp);
-                 db_pomp
-               in *)
-             let version = match !pomp_db_version 
-               with `V1 -> "V1" | `V2 -> "V2"
-             in 
-             Printf.printf
-               "Hello Mr. analysis-runner. \n\
-                \  We ran a succesful non-analysis with \n\
-                \    analysis-id: %d\n\
-                \    pomp-db location: %s\n\
-                \    pomp-db version: %s\n\
-                \  Congratz.\n"
-               analysis_id
-               !pomp_db_loc
-               version;
-                Lwt.return ()
+             let db_pomp = 
+               let db_pomp = Sqex.open_db !pomp_db_loc in
+               at_exit (fun () -> Sqex.close_db db_pomp);
+               db_pomp
+             in
+             Arg_aux.run_analysis_pomp analysis_id
+               ~db:(db_pomp, !pomp_db_version)    
           )
-(*
-       (fun () -> 
-         Arg_aux.run_anal_pomp 
-           ~analysis_id
-           ~db:(db_pomp, !pomp_db_version)
-*)
       )
   in 
   Lwt_main.run @@ Lwt_list.iter_s (fun f -> f ()) job_thunks

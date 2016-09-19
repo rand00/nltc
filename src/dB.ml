@@ -839,6 +839,8 @@ module PompV2 = struct
     let txtmatches ~db ~tokenwrap_ids ~analysis_id txtmatches = 
         Lwt_list.iter_s (fun ((tx1id, tx2id, score), tokenmatches) ->
           Sqex.insert db
+            (*>?goto add column for analysis settings? (for memoization 
+                possibility check)*)
             [%sqlc
                "insert into 
                   analytics_matches_docs(fk_doc1, fk_doc2, score)

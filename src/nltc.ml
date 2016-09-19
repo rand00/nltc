@@ -103,6 +103,17 @@ let _ =
         Format.flush_str_formatter ()
        ));
 
+      ("--db-pomp-run-internal", Arg.Int (fun id -> add_job @@ DB_pomp_analysis id),
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\n\
+           Starts@ an@ analysis@ with@ an@ integer-argument@ pointing@ \
+           to@ the,@ id@ of@ the@ analysis@ to@ be@ run@ (defined@ in@ \
+           the@ Pomp@ db).@ For@ now@ we@ only@ accept@ [--db-pomp-loc]@ \
+           as@ optional@ argument@ to@ this@ analysis@ -@ all@ other@ \
+           options@ have@ to@ be@ defined@ in@ the@ pomp@ db.@]@.";
+        Format.flush_str_formatter ()
+       ));
+
       ("--db-pomp-datasets", 
        Arg.String (fun arg -> add_job @@ Cli_pomp_datasets arg),
        (Format.(fprintf str_formatter)
@@ -143,17 +154,6 @@ let _ =
        (Format.(fprintf str_formatter)
           "@[<6>:@\nControls@ which@ version@ of@ [db-pomp]@ to@ use.@ \
            Currently@ you@ can@ choose@ 'v1'@ or@ 'v2'.@]@.";
-        Format.flush_str_formatter ()
-       ));
-
-      ("--db-pomp-run-internal", Arg.Int (fun id -> add_job @@ DB_pomp_analysis id),
-       (Format.(fprintf str_formatter)
-          "@[<6>:@\n\
-           Starts@ an@ analysis@ with@ an@ integer-argument@ pointing@ \
-           to@ the,@ id@ of@ the@ analysis@ to@ be@ run@ (defined@ in@ \
-           the@ Pomp@ db).@ For@ now@ we@ only@ accept@ [--db-pomp-loc]@ \
-           as@ optional@ argument@ to@ this@ analysis@ -@ all@ other@ \
-           options@ have@ to@ be@ defined@ in@ the@ pomp@ db.@]@.";
         Format.flush_str_formatter ()
        ));
 

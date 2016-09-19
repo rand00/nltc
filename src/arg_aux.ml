@@ -32,6 +32,14 @@ type options = {
   txtmatch_lowbound : float option
 }
 
+let term_columns () = 
+  Unix.open_process_in "stty size"
+  |> IO.read_all
+  |> function
+  | <:re< ["0"-"9"]+ " " (["0"-"9"]+ as cols) >> ->
+    Int.of_string cols
+  | _ -> 78
+
 module Headers = struct 
 
   let gen_headers name arg = [
@@ -106,7 +114,7 @@ let filter_txtmatches_on ?(txtmatch_lowbound=None) txtmatches =
   match txtmatch_lowbound with
   | Some txtmatch_lowbound -> 
     List.filter (fun ((_, _, txm_score), _) ->
-        txm_score >= txtmatch_lowbound
+        txm_score > txtmatch_lowbound
       ) txtmatches
   | None -> txtmatches
 
@@ -280,7 +288,7 @@ let run_analysis_pomp ~db analysis_id =
       { T.datasets = `All;
         T.docs = `All;
         T.sects = `All; }
-    and options = { txtmatch_lowbound = None } in
+    and options = { txtmatch_lowbound = Some 0. } in
     let callback_mod = (module CB.NoAction : CB.S) 
     in
     Sel.texts ~filters:txt_filters db

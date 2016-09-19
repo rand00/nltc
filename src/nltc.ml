@@ -58,79 +58,127 @@ let _ =
     let n = 
       try Filename.chop_extension n 
       with Invalid_argument _ -> n in
-    n 
+    n
   in
+  Format.pp_set_margin Format.str_formatter
+    (min 95 (Arg_aux.term_columns () - 2));
   Arg.parse 
     [ 
-      ("--db-local-clean", 
-       Arg.Unit (fun () -> add_job Cli_local_clean), 
-       ": Deletes entries from the 'documents' table of [db-local].\n");
-
       ("--db-local-run", 
        Arg.String (fun arg -> add_job @@ Cli_local_run arg), 
-       String.concat ""
-         [ ": Tests a part of the program with the current content \
-            of the local database.\n";
-           "      Options are:\n";
-           "         token            -> Runs the tokenizer on contents \
-                                         and excludes tokentypes.\n";
-           "         token_types      -> Runs the tokenizer on contents \
-                                         and prints token-types with \
-                                         tokens.\n";
-           "         content          -> Print raw content from [local \
-                                         db].\n"; 
-           "         compare          -> Output a sorted list of \
-                                         matching text's.\n"]);
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\nRun@ Nltc@ on@ the@ content@ of@ the@ [local-db]@ \
+             with@ the@ following@ possible options:@\n\
+             @[<2>@\n\
+               %-11s -> @[Runs@ the@ tokenizer@ on@ contents@ and@ prints@ \
+                          them@ (excludes@ tokentypes).@]@\n\
+               %-11s -> @[Runs@ the@ tokenizer@ on@ contents@ and@ prints@ \
+                          token-types@ with@ tokens.@]@\n\
+               %-11s -> @[Prints@ raw@ contents from db.@]@\n\
+               %-11s -> @[Runs@ the@ comparison@ algorithm@ and@ prints@ \
+                          results.@]\
+             @]\
+           @]@."
+          "token"
+          "token_types"
+          "content"
+          "compare";
+        Format.flush_str_formatter ()
+       ));
 
-      ("--txtmatch-lowbound", 
-       Arg.Float (fun arg -> add_job @@ Cli_txtmatch_lowbound arg),
-       ": Sets the lower bound for text-matches to be included in\
-        comparison results.\n");      
+      ("--db-local-clean", 
+       Arg.Unit (fun () -> add_job Cli_local_clean), 
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\nDeletes@ entries@ from@ the@ 'documents'@ table@ of@ \
+           [db-local].@]@.";
+        Format.flush_str_formatter ()
+       ));
+
+      ("--db-pomp-run", Arg.String (fun arg -> add_job @@ Cli_pomp_run arg), 
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\nFunctions@ like@ argument@ [--db-local-run]@, but@ works@ \
+           upon@ the@ pomp@ database@ instead.It's@ possible@ to@ filter@ \
+           the@ datasets,@ documents@ and@ sections@ with@ the@ \
+           corresponding@ [--db-pomp-{filter}]@ arguments.@]@.";
+        Format.flush_str_formatter ()
+       ));
 
       ("--db-pomp-datasets", 
        Arg.String (fun arg -> add_job @@ Cli_pomp_datasets arg),
-       ": Controls which datasets to include in comparison of texts \
-          of [db-pomp].\n      Supply a comma-separated string of \
-          numbers or the string \"all\".\n");      
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\nControls@ which@ datasets@ to@ include@ in@ comparison@ \
+           of@ texts@ of@ [db-pomp].@ Supply@ a@ comma-separated@ string@ of@ \
+           numbers@ or@ the@ string@ \"all\"@].@.";
+        Format.flush_str_formatter ()
+       ));
 
       ("--db-pomp-documents", 
        Arg.String (fun arg -> add_job @@ Cli_pomp_documents arg),
-       ": Like '--db-pomp-datasets', but filters documents.\n");
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\nLike@ '--db-pomp-datasets',@ but@ filters@ documents.\
+           @]@.";
+        Format.flush_str_formatter ()
+       ));
       
       ("--db-pomp-sections", 
        Arg.String (fun arg -> add_job @@ Cli_pomp_sections arg),
-       ": Like '--db-pomp-datasets', but filters sections/template-\
-        title-id's.\n");
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\nLike@ '--db-pomp-datasets',@ but@ filters@ sections/\
+           template-title-id's.@]@.";
+        Format.flush_str_formatter ()
+       ));
 
       ("--db-pomp-loc", 
        Arg.String (fun arg -> add_job @@ Cli_pomp_dbloc arg),
-       ": Controls which location of [db-pomp] to use. \
-          \n      Supply an absolute path to the db to use, or one \
-          \n      relative to where '"^program_name^"' lies .\n");
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\nControls@ which@ location@ of@ [db-pomp]@ to@ use.@ \
+           Supply@ an@ absolute@ path@ to@ the@ db@ to@ use,@ or@ one@ \
+           relative@ to@ where@ '%s'@ lies@ .@]@."
+          program_name;
+          Format.flush_str_formatter ()
+       ));
 
       ("--db-pomp-version", 
        Arg.String (fun arg -> add_job @@ Cli_pomp_dbversion arg),
-       ": Controls which version of [db-pomp] to use. \
-          \n      Currently you can choose 'v1' or 'v2'.\n");
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\nControls@ which@ version@ of@ [db-pomp]@ to@ use.@ \
+           Currently@ you@ can@ choose@ 'v1'@ or@ 'v2'.@]@.";
+        Format.flush_str_formatter ()
+       ));
 
-      ("--db-pomp-run", Arg.String (fun arg -> add_job @@ Cli_pomp_run arg), 
-       ": Like argument [--db-local] but tests on the sections given as \
-          argument to\n      '--db-pomp-sections'.\n");
+      ("--db-pomp-run-internal", Arg.Int (fun id -> add_job @@ DB_pomp_analysis id),
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\n\
+           Starts@ an@ analysis@ with@ an@ integer-argument@ pointing@ \
+           to@ the,@ id@ of@ the@ analysis@ to@ be@ run@ (defined@ in@ \
+           the@ Pomp@ db).@ For@ now@ we@ only@ accept@ [--db-pomp-loc]@ \
+           as@ optional@ argument@ to@ this@ analysis@ -@ all@ other@ \
+           options@ have@ to@ be@ defined@ in@ the@ pomp@ db.@]@.";
+        Format.flush_str_formatter ()
+       ));
 
-      ("--run-id", Arg.Int (fun id -> add_job @@ DB_pomp_analysis id),
-       ": Starts an analysis with the argument 'analysis-ID', \
-        which's settings are listed in\n      the Pomp database.\
-        This means that none of the settings given via the CLI\n\
-        \      counts.\n")
+      ("--txtmatch-lowbound", 
+       Arg.Float (fun arg -> add_job @@ Cli_txtmatch_lowbound arg),
+       (Format.(fprintf str_formatter)
+          "@[<6>:@\n\
+           Sets@ the@ lower@ bound@ for@ text-matches@ to@ be@ included@ \
+           in@ comparison@ results.@ This@ is@ a@ common@ option@ for@ \
+           both@ the local@ and@ pomp@ db's.@]@.";
+        Format.flush_str_formatter ()
+       ));
+
     ] 
 
     (fun file -> add_job @@ Cli_local_insert file
     )
 
-    (String.concat "\n" 
-       [ "\n"^program_name^" usage:"; 
-         "  The last arguments given on cmd-line are loaded as text-files \
-          into [db-local].\n" ]);
+    (Format.(fprintf str_formatter)
+       "@\n\
+        @[<2>Nltc@ Usage:@\n\
+        The@ last@ anonymous@ arguments@ given@ on@ cmd-line@ are@ loaded@ \
+        as@ text-files@ into@ [db-local].@]@.";
+     Format.flush_str_formatter ()
+    );
 
   let options = ref Arg_aux.({ txtmatch_lowbound = None })
   and pomp_db_datasets = ref `All 

@@ -51,7 +51,7 @@ let run
       )
     |> PJobs.Naive.exec ~force_cores:(Some cores)
     >|= List.flatten
-    >>= fun tokenwraps -> (
+    >>= fun tokenwraps -> ( (*goto rename to texts_tokenwraps*)
       tokenwraps
       |> Combine.all (fun x y -> x,y) 
       |> PJobs.chunk ~n:(cores*times_return) 
